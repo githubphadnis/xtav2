@@ -53,7 +53,8 @@ services:
       FEATURE_TRENDS_UI: ${FEATURE_TRENDS_UI:-false}
       FEATURE_GEO: ${FEATURE_GEO:-false}
     ports:
-      - "${XTAV2_HOST_PORT:-8080}:8080"
+      # notcoolio: 8080 is typically monsoon/XTA — pick a free host port
+      - "${XTAV2_HOST_PORT:-4280}:8080"
     depends_on:
       postgres:
         condition: service_healthy

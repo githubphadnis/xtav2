@@ -13,6 +13,8 @@
 4. Branch: `main`
 5. Set stack env vars from `.env.example` (especially `POSTGRES_PASSWORD`,
    `OLLAMA_BASE_URL`, `BASE_CURRENCY`, `FEATURE_*`)
+6. Host port defaults to **4280** (`XTAV2_HOST_PORT`) — `8080` is usually
+   taken by monsoon/XTA on notcoolio. Point Cloudflare at that host port.
 
 ## Hosts
 
