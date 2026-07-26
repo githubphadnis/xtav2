@@ -26,5 +26,5 @@ jobs:
 
       - name: Test
         env:
-          DATABASE_URL: sqlite+pysqlite:///:memory:
+          DATABASE_URL: "sqlite+pysqlite:///:memory:"
         run: pytest tests/ -q
