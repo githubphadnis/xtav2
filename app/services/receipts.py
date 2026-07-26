@@ -1,4 +1,4 @@
-"""Receipt capture + optional vision extraction."""
+"""Receipt capture + OCR providers (local vision / Google Vision / manual)."""
 
 from __future__ import annotations
 
@@ -16,9 +16,10 @@ import httpx
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.integrations.ollama import list_models
+from app.integrations.ollama import ask_ollama, list_models
 from app.models import Expense
 from app.services import expenses as expense_service
+from app.services import settings_store
 
 logger = logging.getLogger("xtav2.receipts")
 
@@ -29,6 +30,13 @@ _IMAGE_TYPES = {
     "image/webp": ".webp",
     "image/heic": ".heic",
 }
+
+_STRUCTURE_SYSTEM = (
+    "Extract expense fields from receipt text. Return JSON only with keys: "
+    "amount (number), currency (3-letter), merchant (string), category (string), "
+    "spent_on (YYYY-MM-DD), note (string). Use null when unknown. "
+    "Prefer SUMME/TOTAL/Betrag as amount. German receipts use comma decimals."
+)
 
 
 def upload_root(settings: Settings) -> Path:
@@ -57,69 +65,6 @@ def save_receipt_bytes(
     return name
 
 
-async def extract_receipt_fields(
-    settings: Settings, *, image_bytes: bytes, content_type: str
-) -> dict[str, object]:
-    """Call Ollama vision model for structured receipt fields (best-effort)."""
-    model = (settings.ollama_vision_model or "").strip()
-    if not model:
-        raise RuntimeError(
-            "OLLAMA_VISION_MODEL is empty. Set it to a vision-capable model from "
-            "`ollama list` on lenai, or disable FEATURE_OCR_OLLAMA_VISION."
-        )
-    available = await list_models(settings)
-    if available and not any(m == model or m.startswith(f"{model}:") for m in available):
-        raise RuntimeError(
-            f"Vision model '{model}' not on lenai. Available: {', '.join(available)}. "
-            "Pull a vision model or turn off FEATURE_OCR_OLLAMA_VISION."
-        )
-
-    b64 = base64.b64encode(image_bytes).decode("ascii")
-    mime = content_type if content_type in _IMAGE_TYPES else "image/jpeg"
-    data_url = f"data:{mime};base64,{b64}"
-    system = (
-        "Extract expense fields from the receipt image. Return JSON only with keys: "
-        "amount (number), currency (3-letter), merchant (string), category (string), "
-        "spent_on (YYYY-MM-DD), note (string). Use null when unknown."
-    )
-    payload = {
-        "model": model,
-        "stream": False,
-        "format": "json",
-        "messages": [
-            {"role": "system", "content": system},
-            {
-                "role": "user",
-                "content": "Read this receipt and extract the fields.",
-                "images": [data_url],
-            },
-        ],
-    }
-    # Ollama chat API expects images as raw base64 in some versions — try both shapes.
-    payload_alt = {
-        "model": model,
-        "stream": False,
-        "format": "json",
-        "messages": [
-            {"role": "system", "content": system},
-            {
-                "role": "user",
-                "content": "Read this receipt and extract the fields.",
-                "images": [b64],
-            },
-        ],
-    }
-    url = f"{settings.ollama_base_url.rstrip('/')}/api/chat"
-    timeout = httpx.Timeout(settings.ollama_vision_timeout_seconds)
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        response = await client.post(url, json=payload_alt)
-        if response.status_code >= 400:
-            response = await client.post(url, json=payload)
-        response.raise_for_status()
-        content = (response.json().get("message") or {}).get("content") or "{}"
-    return _parse_extract_json(content)
-
-
 def _parse_extract_json(content: str) -> dict[str, object]:
     try:
         raw = json.loads(content)
@@ -142,7 +87,7 @@ def _coerce_extract(
     amount = Decimal("0.00")
     if raw.get("amount") is not None:
         try:
-            amount = Decimal(str(raw["amount"]))
+            amount = Decimal(str(raw["amount"]).replace(",", "."))
         except (InvalidOperation, ValueError):
             amount = Decimal("0.00")
     currency = str(raw.get("currency") or settings.base_currency).strip().upper()[:3]
@@ -160,6 +105,124 @@ def _coerce_extract(
         "spent_on": spent_on,
         "note": str(raw.get("note") or "").strip(),
     }
+
+
+async def extract_via_ollama_vision(
+    settings: Settings, *, image_bytes: bytes, content_type: str
+) -> dict[str, object]:
+    """Call Ollama vision model for structured receipt fields."""
+    model = (settings.ollama_vision_model or "").strip()
+    if not model:
+        raise RuntimeError("OLLAMA_VISION_MODEL is empty")
+    available = await list_models(settings)
+    if available and not any(m == model or m.startswith(f"{model}:") for m in available):
+        raise RuntimeError(
+            f"Vision model '{model}' not on lenai. Available: {', '.join(available)}"
+        )
+
+    b64 = base64.b64encode(image_bytes).decode("ascii")
+    payload = {
+        "model": model,
+        "stream": False,
+        "format": "json",
+        "messages": [
+            {"role": "system", "content": _STRUCTURE_SYSTEM},
+            {
+                "role": "user",
+                "content": "Read this receipt and extract the fields.",
+                "images": [b64],
+            },
+        ],
+    }
+    url = f"{settings.ollama_base_url.rstrip('/')}/api/chat"
+    timeout = httpx.Timeout(settings.ollama_vision_timeout_seconds)
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        response = await client.post(url, json=payload)
+        response.raise_for_status()
+        content = (response.json().get("message") or {}).get("content") or "{}"
+    return _parse_extract_json(content)
+
+
+async def extract_text_via_google_vision(
+    settings: Settings, *, image_bytes: bytes, privacy_on: bool
+) -> str:
+    """OCR raw text via Google Cloud Vision REST API (DOCUMENT_TEXT_DETECTION)."""
+    if privacy_on:
+        raise RuntimeError("Privacy local-only blocks Google Vision")
+    key = settings.google_vision_api_key.strip()
+    if not key:
+        raise RuntimeError("GOOGLE_VISION_API_KEY is empty")
+    b64 = base64.b64encode(image_bytes).decode("ascii")
+    url = f"https://vision.googleapis.com/v1/images:annotate?key={key}"
+    payload = {
+        "requests": [
+            {
+                "image": {"content": b64},
+                "features": [{"type": "DOCUMENT_TEXT_DETECTION"}],
+            }
+        ]
+    }
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        response = await client.post(url, json=payload)
+        response.raise_for_status()
+        data = response.json()
+    responses = data.get("responses") or [{}]
+    annotation = responses[0].get("fullTextAnnotation") or {}
+    text = annotation.get("text") or ""
+    if not text:
+        # Fallback to first textAnnotations entry
+        anns = responses[0].get("textAnnotations") or []
+        if anns:
+            text = str(anns[0].get("description") or "")
+    if not text.strip():
+        raise RuntimeError("Google Vision returned no text")
+    return text
+
+
+async def structure_text_with_ollama(settings: Settings, *, text: str) -> dict[str, object]:
+    """Turn OCR text into expense JSON using the local chat model."""
+    prompt = f"Receipt text:\n{text[:6000]}\n\nReturn JSON only."
+    content = await ask_ollama(settings, prompt, _STRUCTURE_SYSTEM)
+    return _parse_extract_json(content)
+
+
+async def run_ocr_pipeline(
+    settings: Settings,
+    *,
+    image_bytes: bytes,
+    content_type: str,
+    privacy_on: bool,
+    google_ok: bool,
+) -> tuple[dict[str, object] | None, str | None, str]:
+    """Try configured OCR providers. Returns (raw_fields, warning, provider_used)."""
+    ollama_err: str | None = None
+    if settings.ollama_vision_allowed():
+        try:
+            raw = await extract_via_ollama_vision(
+                settings, image_bytes=image_bytes, content_type=content_type
+            )
+            return raw, None, "ollama_vision"
+        except (RuntimeError, httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
+            logger.warning("Ollama vision OCR failed: %s", exc)
+            ollama_err = str(exc)
+
+    if google_ok:
+        try:
+            text = await extract_text_via_google_vision(
+                settings, image_bytes=image_bytes, privacy_on=privacy_on
+            )
+            raw = await structure_text_with_ollama(settings, text=text)
+            return raw, None, "google_vision+ollama_structure"
+        except (RuntimeError, httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
+            logger.warning("Google Vision OCR failed: %s", exc)
+            parts = [p for p in (ollama_err, str(exc)) if p]
+            return None, "; ".join(parts) if parts else str(exc), "none"
+
+    if settings.feature_ocr_google_vision and privacy_on:
+        return None, "Google Vision blocked by privacy local-only", "none"
+    if ollama_err:
+        return None, ollama_err, "none"
+    return None, "OCR providers off — fill fields manually", "none"
 
 
 async def create_pending_from_upload(
@@ -183,16 +246,19 @@ async def create_pending_from_upload(
         "spent_on": today,
         "note": "",
     }
-    warning: str | None = None
-    if settings.feature_ocr_ollama_vision:
-        try:
-            raw = await extract_receipt_fields(
-                settings, image_bytes=data, content_type=content_type
-            )
-            fields = _coerce_extract(settings, raw, today)
-        except (RuntimeError, httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
-            logger.warning("Vision OCR failed: %s", exc)
-            warning = str(exc)
+    privacy_on = settings_store.privacy_local_only(db, settings)
+    google_ok = settings_store.google_vision_allowed(db, settings)
+    raw, warning, provider = await run_ocr_pipeline(
+        settings,
+        image_bytes=data,
+        content_type=content_type,
+        privacy_on=privacy_on,
+        google_ok=google_ok,
+    )
+    if raw:
+        fields = _coerce_extract(settings, raw, today)
+        if provider and not fields.get("note"):
+            fields["note"] = f"ocr:{provider}"
 
     row = expense_service.add_expense(
         db,

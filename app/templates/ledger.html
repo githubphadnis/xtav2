@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Ledger · xtav2{% endblock %}
+{% block content %}
+<h1 class="page-title">Ledger</h1>
+<p class="page-lead">Recent posted expenses.</p>
+
+{% if expenses %}
+<ul class="list">
+  {% for e in expenses %}
+  <li class="item">
+    <div>
+      <p class="item-title">{{ e.merchant or e.category or "Expense" }}</p>
+      <p class="item-meta">{{ e.spent_on }} · {{ e.category }}</p>
+      {% if e.note %}<p class="item-meta">{{ e.note }}</p>{% endif %}
+    </div>
+    <div style="text-align:right">
+      <p class="item-amt">{{ format_money(e.amount) }} {{ e.currency }}</p>
+      {% if settings.feature_manual_entry %}
+      <form method="post" action="/expenses/{{ e.id }}/delete" style="margin-top:0.4rem"
+            onsubmit="return confirm('Delete this expense?');">
+        <input type="hidden" name="next" value="/" />
+        <button type="submit" class="btn-danger-text">Delete</button>
+      </form>
+      {% endif %}
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">No expenses yet. Use Add or Capture.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Ask · xtav2{% endblock %}
+{% block content %}
+<h1 class="page-title">Ask</h1>
+<p class="page-lead">Natural-language spend questions via local Ollama.</p>
+
+<form method="post" action="/ask">
+  <label class="field">
+    <span>Question</span>
+    <input required name="question" value="{{ question or '' }}"
+           placeholder="How much on crisps this quarter?" />
+  </label>
+  <button type="submit" class="btn btn-primary">Ask Ollama</button>
+</form>
+
+{% if answer %}
+<div class="answer">{{ answer }}</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Settings · xtav2{% endblock %}
+{% block content %}
+<h1 class="page-title">Settings</h1>
+<p class="page-lead">Privacy and OCR routing.</p>
+
+<form method="post" action="/settings/privacy">
+  <label class="toggle">
+    <input type="checkbox" name="privacy_local_only" value="on"
+           {% if privacy_local_only %}checked{% endif %} />
+    <span>
+      <strong>Privacy — local models only</strong>
+      <p>
+        When on, receipt images never go to Google Vision (even if that flag is enabled).
+        Ollama on lenai remains available.
+      </p>
+    </span>
+  </label>
+  <button type="submit" class="btn btn-primary" style="margin-top:1rem">Save privacy</button>
+</form>
+
+<div class="meta-block">
+  <dl>
+    <dt>Base currency</dt>
+    <dd>{{ settings.base_currency }}</dd>
+    <dt>Ollama model</dt>
+    <dd>{{ settings.ollama_model }}</dd>
+    <dt>Vision model</dt>
+    <dd>{{ settings.ollama_vision_model or "—" }}</dd>
+    <dt>Local vision flag</dt>
+    <dd>{{ "on" if settings.feature_ocr_ollama_vision else "off" }}</dd>
+    <dt>Google Vision flag</dt>
+    <dd>{{ "on" if settings.feature_ocr_google_vision else "off" }}</dd>
+    <dt>Google Vision effective</dt>
+    <dd>{{ "yes" if google_vision_effective else "no" }}</dd>
+    <dt>Env privacy default</dt>
+    <dd>{{ "on" if settings.privacy_local_only else "off" }}</dd>
+  </dl>
+</div>
+{% endblock %}

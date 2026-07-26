@@ -47,7 +47,8 @@ def test_save_and_pending_receipt_without_vision() -> None:
                 content_type="image/jpeg",
                 filename="receipt.jpg",
             )
-            assert warning is None
+            assert warning  # OCR off → manual fill message
+            assert "OCR" in warning or "manual" in warning.lower()
             assert row.status == "pending"
             assert row.source == "receipt"
             assert row.receipt_path

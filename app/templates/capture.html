@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Capture · xtav2{% endblock %}
+{% block content %}
+<h1 class="page-title">Capture receipt</h1>
+<p class="page-lead">Photo or gallery → pending draft for review.</p>
+
+<form method="post" action="/receipts/upload" enctype="multipart/form-data">
+  <label class="field">
+    <span>Take photo or choose image</span>
+    <input required type="file" name="file" accept="image/*" capture="environment" />
+  </label>
+  <button type="submit" class="btn btn-primary">Upload receipt</button>
+</form>
+
+<div class="meta-block" style="margin-top:1.25rem">
+  {% if settings.feature_ocr_ollama_vision and settings.ollama_vision_model %}
+  Local vision OCR is configured ({{ settings.ollama_vision_model }}).
+  {% elif google_vision_effective %}
+  Google Vision OCR is available (privacy local-only is off).
+  {% elif settings.feature_ocr_google_vision and privacy_local_only %}
+  Google Vision is configured but blocked by privacy local-only.
+  {% else %}
+  OCR providers are off — fill fields manually on Pending.
+  {% endif %}
+</div>
+{% endblock %}

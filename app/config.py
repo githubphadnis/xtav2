@@ -29,10 +29,13 @@ class Settings(BaseSettings):
 
     ollama_base_url: str = "http://lenai:11434"
     ollama_model: str = "qwen2.5:14b"
-    # Vision model for receipt OCR — must exist on lenai when FEATURE_OCR_OLLAMA_VISION=true
     ollama_vision_model: str = ""
     ollama_timeout_seconds: int = 60
     ollama_vision_timeout_seconds: int = 120
+
+    # When true, never send receipt images/text to cloud OCR (blocks Google Vision).
+    privacy_local_only: bool = True
+    google_vision_api_key: str = ""
 
     upload_dir: str = "uploads"
     max_upload_size_mb: int = 10
@@ -53,6 +56,7 @@ class Settings(BaseSettings):
     feature_geo: bool = False
 
     @field_validator(
+        "privacy_local_only",
         "feature_manual_entry",
         "feature_multi_currency",
         "feature_ollama_qa",
@@ -72,6 +76,9 @@ class Settings(BaseSettings):
     @classmethod
     def parse_bool_flags(cls, value: object) -> bool:
         return _as_bool(value)
+
+    def ollama_vision_allowed(self) -> bool:
+        return self.feature_ocr_ollama_vision and bool(self.ollama_vision_model.strip())
 
 
 @lru_cache

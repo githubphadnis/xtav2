@@ -20,6 +20,7 @@ from app.db import get_db, init_db
 from app.features import flag_snapshot, require_flag
 from app.integrations.ollama import ask_ollama, list_models
 from app.services import expenses as expense_service
+from app.services import settings_store
 from app.services.expenses import format_money
 from app.services.receipts import create_pending_from_upload, upload_root
 
@@ -28,6 +29,7 @@ logging.basicConfig(level=getattr(logging, settings.app_log_level.upper(), loggi
 logger = logging.getLogger("xtav2")
 
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals["format_money"] = format_money
 
@@ -39,19 +41,25 @@ def today_iso(settings: Settings) -> str:
 
 def _page_context(
     *,
+    request: Request,
     db: Session,
     settings: Settings,
+    active: str,
     **extra: object,
 ) -> dict[str, object]:
+    privacy = settings_store.privacy_local_only(db, settings)
+    pending = (
+        expense_service.list_pending(db, limit=20) if settings.feature_receipt_ocr else []
+    )
     ctx: dict[str, object] = {
-        "expenses": (
-            expense_service.list_expenses(db, limit=50) if settings.feature_manual_entry else []
-        ),
-        "pending": (
-            expense_service.list_pending(db, limit=20) if settings.feature_receipt_ocr else []
-        ),
+        "request": request,
+        "active": active,
+        "pending_count": len(pending),
+        "pending": pending,
+        "privacy_local_only": privacy,
+        "google_vision_effective": settings_store.google_vision_allowed(db, settings),
         "settings": settings,
-        "flags": flag_snapshot(settings),
+        "flags": flag_snapshot(settings, db),
         "today": today_iso(settings),
     }
     ctx.update(extra)
@@ -75,6 +83,7 @@ app = FastAPI(
 
 uploads_path = upload_root(settings)
 app.mount("/uploads", StaticFiles(directory=str(uploads_path)), name="uploads")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @app.get("/health/live")
@@ -98,8 +107,11 @@ def health_db() -> dict[str, object]:
 
 
 @app.get("/health/flags")
-def health_flags(settings: Settings = Depends(get_settings)) -> dict[str, object]:
-    return {"status": "ok", "flags": flag_snapshot(settings)}
+def health_flags(
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, object]:
+    return {"status": "ok", "flags": flag_snapshot(settings, db)}
 
 
 @app.get("/health/ollama")
@@ -131,9 +143,105 @@ def home(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> HTMLResponse:
-    return templates.TemplateResponse(
-        request, "home.html", _page_context(db=db, settings=settings)
+    expenses = (
+        expense_service.list_expenses(db, limit=50) if settings.feature_manual_entry else []
     )
+    return templates.TemplateResponse(
+        request,
+        "ledger.html",
+        _page_context(
+            request=request,
+            db=db,
+            settings=settings,
+            active="ledger",
+            expenses=expenses,
+        ),
+    )
+
+
+@app.get("/add", response_class=HTMLResponse)
+def add_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> HTMLResponse:
+    if not require_flag("FEATURE_MANUAL_ENTRY", settings):
+        raise HTTPException(status_code=404, detail="Manual entry disabled")
+    return templates.TemplateResponse(
+        request,
+        "add.html",
+        _page_context(request=request, db=db, settings=settings, active="add"),
+    )
+
+
+@app.get("/capture", response_class=HTMLResponse)
+def capture_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> HTMLResponse:
+    if not require_flag("FEATURE_RECEIPT_OCR", settings):
+        raise HTTPException(status_code=404, detail="Receipt capture disabled")
+    return templates.TemplateResponse(
+        request,
+        "capture.html",
+        _page_context(request=request, db=db, settings=settings, active="capture"),
+    )
+
+
+@app.get("/pending", response_class=HTMLResponse)
+def pending_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> HTMLResponse:
+    if not require_flag("FEATURE_RECEIPT_OCR", settings):
+        raise HTTPException(status_code=404, detail="Receipt capture disabled")
+    return templates.TemplateResponse(
+        request,
+        "pending.html",
+        _page_context(request=request, db=db, settings=settings, active="pending"),
+    )
+
+
+@app.get("/ask", response_class=HTMLResponse)
+def ask_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> HTMLResponse:
+    if not require_flag("FEATURE_OLLAMA_QA", settings):
+        raise HTTPException(status_code=404, detail="Ollama Q&A disabled")
+    return templates.TemplateResponse(
+        request,
+        "ask.html",
+        _page_context(request=request, db=db, settings=settings, active="ask"),
+    )
+
+
+@app.get("/settings", response_class=HTMLResponse)
+def settings_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request,
+        "settings.html",
+        _page_context(request=request, db=db, settings=settings, active="settings"),
+    )
+
+
+@app.post("/settings/privacy")
+def update_privacy(
+    privacy_local_only: str | None = Form(None),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> RedirectResponse:
+    # Checkbox present = on; absent = off
+    enabled = privacy_local_only in {"1", "true", "on", "yes"}
+    settings_store.set_privacy_local_only(db, enabled)
+    return RedirectResponse(url="/settings", status_code=303)
 
 
 @app.post("/expenses")
@@ -174,6 +282,7 @@ def create_expense(
 @app.post("/expenses/{expense_id}/delete")
 def remove_expense(
     expense_id: int,
+    next: str = Form("/"),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> RedirectResponse:
@@ -185,7 +294,8 @@ def remove_expense(
     deleted = expense_service.delete_expense(db, expense_id=expense_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Expense not found")
-    return RedirectResponse(url="/", status_code=303)
+    dest = next if next.startswith("/") else "/"
+    return RedirectResponse(url=dest, status_code=303)
 
 
 @app.post("/receipts/upload")
@@ -214,8 +324,14 @@ async def upload_receipt(
         flash = f"{flash} OCR skipped: {warning}"
     return templates.TemplateResponse(
         request,
-        "home.html",
-        _page_context(db=db, settings=settings, flash=flash),
+        "pending.html",
+        _page_context(
+            request=request,
+            db=db,
+            settings=settings,
+            active="pending",
+            flash=flash,
+        ),
     )
 
 
@@ -255,7 +371,7 @@ def confirm_pending(
     )
     if updated is None:
         raise HTTPException(status_code=404, detail="Expense not found")
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/pending", status_code=303)
 
 
 @app.post("/ask", response_class=HTMLResponse)
@@ -282,10 +398,12 @@ async def ask(
 
     return templates.TemplateResponse(
         request,
-        "home.html",
+        "ask.html",
         _page_context(
+            request=request,
             db=db,
             settings=settings,
+            active="ask",
             question=question,
             answer=answer,
             aggregate=aggregate,

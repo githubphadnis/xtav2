@@ -12,7 +12,8 @@ Every module is gated by an environment variable. Flags are booleans parsed from
 | `FEATURE_RECEIPT_OCR` | `false` | Receipt photo / camera ingest + pending queue |
 | `FEATURE_MASS_UPLOAD` | `false` | Bulk ingest from a directory / multi-file upload |
 | `FEATURE_OCR_OLLAMA_VISION` | `false` | Ollama vision OCR provider (needs `OLLAMA_VISION_MODEL`) |
-| `FEATURE_OCR_GOOGLE_VISION` | `false` | Google Vision OCR provider |
+| `FEATURE_OCR_GOOGLE_VISION` | `false` | Google Vision OCR (blocked when privacy local-only) |
+| `PRIVACY_LOCAL_ONLY` | `true` | Bootstrap privacy; Settings UI can override at runtime |
 | `FEATURE_BANK_IMPORT` | `false` | CSV/Excel/PDF bank statements |
 | `FEATURE_EMAIL_INGEST` | `false` | Email → expense pipeline |
 | `FEATURE_LINE_ITEMS` | `false` | Per-SKU line items on receipts |

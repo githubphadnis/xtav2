@@ -12,9 +12,12 @@
 3. Compose path: `docker-compose.portainer.yml`
 4. Branch: `main`
 5. Set stack env vars from `.env.example` (especially `POSTGRES_PASSWORD`,
-   `OLLAMA_BASE_URL`, `BASE_CURRENCY`, `FEATURE_*`)
+   `OLLAMA_BASE_URL`, `BASE_CURRENCY`, `FEATURE_*`, `PRIVACY_LOCAL_ONLY`)
 6. Host port defaults to **4280** (`XTAV2_HOST_PORT`) — `8080` is usually
    taken by monsoon/XTA on notcoolio. Point Cloudflare at that host port.
+
+Privacy can also be toggled at runtime on **Settings** (DB override). Google Vision
+needs `FEATURE_OCR_GOOGLE_VISION=true`, `GOOGLE_VISION_API_KEY`, and privacy **off**.
 
 ## Hosts
 

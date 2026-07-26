@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>{% block title %}xtav2{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <p class="brand">xtav2</p>
+      <p class="brand-sub">Local-first expense ledger</p>
+    </header>
+
+    {% if flash %}
+    <div class="flash">{{ flash }}</div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </div>
+
+  <nav class="nav" aria-label="Primary">
+    <div class="nav-inner">
+      <a href="/" class="{% if active == 'ledger' %}is-active{% endif %}">
+        <span class="icon" aria-hidden="true">≡</span>
+        Ledger
+      </a>
+      {% if settings.feature_manual_entry %}
+      <a href="/add" class="{% if active == 'add' %}is-active{% endif %}">
+        <span class="icon" aria-hidden="true">+</span>
+        Add
+      </a>
+      {% endif %}
+      {% if settings.feature_receipt_ocr %}
+      <a href="/capture" class="{% if active == 'capture' %}is-active{% endif %}">
+        <span class="icon" aria-hidden="true">◉</span>
+        Capture
+      </a>
+      <a href="/pending" class="{% if active == 'pending' %}is-active{% endif %}">
+        <span class="icon" aria-hidden="true">◌</span>
+        Pending{% if pending_count %}<span class="badge">{{ pending_count }}</span>{% endif %}
+      </a>
+      {% endif %}
+      {% if settings.feature_ollama_qa %}
+      <a href="/ask" class="{% if active == 'ask' %}is-active{% endif %}">
+        <span class="icon" aria-hidden="true">?</span>
+        Ask
+      </a>
+      {% endif %}
+      <a href="/settings" class="{% if active == 'settings' %}is-active{% endif %}">
+        <span class="icon" aria-hidden="true">⚙</span>
+        Settings
+      </a>
+    </div>
+  </nav>
+</body>
+</html>

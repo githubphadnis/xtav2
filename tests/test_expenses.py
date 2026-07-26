@@ -34,6 +34,21 @@ def test_flag_snapshot_defaults() -> None:
     flags = flag_snapshot(get_settings())
     assert flags["FEATURE_MANUAL_ENTRY"] is True
     assert flags["FEATURE_RECEIPT_OCR"] is False
+    assert flags["PRIVACY_LOCAL_ONLY"] is True
+
+
+def test_privacy_toggle_override() -> None:
+    from app.services import settings_store
+
+    settings = get_settings()
+    SessionLocal = get_session_factory()
+    with SessionLocal() as db:
+        assert settings_store.privacy_local_only(db, settings) is True
+        settings_store.set_privacy_local_only(db, False)
+        assert settings_store.privacy_local_only(db, settings) is False
+        assert settings_store.google_vision_allowed(db, settings) is False  # flag/key off
+        settings_store.set_privacy_local_only(db, True)
+        assert settings_store.privacy_local_only(db, settings) is True
 
 
 def test_add_and_query_spend() -> None:

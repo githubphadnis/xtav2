@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Add · xtav2{% endblock %}
+{% block content %}
+<h1 class="page-title">Add expense</h1>
+<p class="page-lead">Manual entry — no photo required.</p>
+
+<form method="post" action="/expenses">
+  <div class="row-2">
+    <label class="field">
+      <span>Date</span>
+      <input required type="date" name="spent_on" value="{{ today }}" />
+    </label>
+    <label class="field">
+      <span>Amount</span>
+      <input required inputmode="decimal" name="amount" placeholder="0.00" />
+    </label>
+  </div>
+  <div class="row-2">
+    <label class="field">
+      <span>Currency</span>
+      <input required name="currency" maxlength="3" value="{{ settings.base_currency }}" style="text-transform:uppercase" />
+    </label>
+    <label class="field">
+      <span>Category</span>
+      <input name="category" placeholder="groceries" />
+    </label>
+  </div>
+  <label class="field">
+    <span>Merchant</span>
+    <input name="merchant" placeholder="REWE" />
+  </label>
+  <label class="field">
+    <span>Note</span>
+    <input name="note" placeholder="crisps, milk…" />
+  </label>
+  <button type="submit" class="btn btn-primary">Save</button>
+</form>
+{% endblock %}

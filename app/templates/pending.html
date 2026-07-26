@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Pending · xtav2{% endblock %}
+{% block content %}
+<h1 class="page-title">Pending</h1>
+<p class="page-lead">Confirm OCR drafts before they count in Ask.</p>
+
+{% if pending %}
+<ul class="list">
+  {% for e in pending %}
+  <li class="draft">
+    {% if e.receipt_path %}
+    <img class="thumb" src="/uploads/{{ e.receipt_path }}" alt="Receipt" />
+    {% endif %}
+    <form method="post" action="/expenses/{{ e.id }}/confirm">
+      <div class="row-2">
+        <label class="field">
+          <span>Date</span>
+          <input required type="date" name="spent_on" value="{{ e.spent_on }}" />
+        </label>
+        <label class="field">
+          <span>Amount</span>
+          <input required inputmode="decimal" name="amount" value="{{ format_money(e.amount) }}" />
+        </label>
+      </div>
+      <div class="row-2">
+        <label class="field">
+          <span>Currency</span>
+          <input required name="currency" maxlength="3" value="{{ e.currency }}" style="text-transform:uppercase" />
+        </label>
+        <label class="field">
+          <span>Category</span>
+          <input name="category" value="{{ e.category }}" />
+        </label>
+      </div>
+      <label class="field">
+        <span>Merchant</span>
+        <input name="merchant" value="{{ e.merchant }}" />
+      </label>
+      <label class="field">
+        <span>Note</span>
+        <input name="note" value="{{ e.note }}" />
+      </label>
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">Confirm</button>
+        <button form="del-{{ e.id }}" type="submit" class="btn btn-ghost"
+                onclick="return confirm('Delete this draft?');">Delete</button>
+      </div>
+    </form>
+    <form id="del-{{ e.id }}" method="post" action="/expenses/{{ e.id }}/delete">
+      <input type="hidden" name="next" value="/pending" />
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">No pending receipts. Capture one from the camera screen.</p>
+{% endif %}
+{% endblock %}

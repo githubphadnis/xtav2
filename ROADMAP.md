@@ -30,10 +30,9 @@
 
 | Issue | Theme |
 |-------|--------|
-| [#8](https://github.com/githubphadnis/xtav2/issues/8) | Camera capture — **shipped (flag off by default)** |
 | [#9](https://github.com/githubphadnis/xtav2/issues/9) | Mass upload from directory (init ingest) |
 
-### Closed (V1.0 ops / core)
+### Closed (V1.0 / V1.1 partial)
 
 | Issue | Theme |
 |-------|--------|
@@ -41,6 +40,9 @@
 | #4 | Portainer + Cloudflare (`https://xta.pphadnis.com/`) |
 | #5 | Golden Board (deferred OK) |
 | #7 / #10 | Delete + Ollama model default |
+| #8 | Camera capture |
+| #11 | Privacy toggle + Google Vision optional |
+| #12 | Multi-screen UI + mobile visual polish |
 
 ### Milestones
 

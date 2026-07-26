@@ -1,10 +1,11 @@
 ﻿# Breadcrumbs — xtav2
 
-## Session: 2026-07-26
+## Session: 2026-07-26 (UI / privacy / Vision)
 
-- **Work done:** #8 camera capture — pending receipt drafts, upload volume,
-  optional vision OCR flag; tests green.
+- **Work done:** Split UI into screens + bottom nav; privacy local-only toggle
+  (env + Settings UI); Google Vision OCR path gated by privacy; mobile visual
+  redesign; docs/receipts + flags updated.
 - **Current branch / state:** main (pushing)
-- **Next immediate action:** Portainer set `FEATURE_RECEIPT_OCR=true`, redeploy,
-  verify camera → pending → confirm on https://xta.pphadnis.com/; then #9 mass upload.
-- **Environment notes:** Vision OCR stays off until a vision model exists on lenai.
+- **Next immediate action:** Portainer pull latest; confirm Settings privacy on;
+  optionally pull `minicpm-v` / `qwen2.5vl` on lenai for local OCR; #9 mass upload.
+- **Environment notes:** Host `:4280`; live https://xta.pphadnis.com/
