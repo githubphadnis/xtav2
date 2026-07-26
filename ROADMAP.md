@@ -31,6 +31,7 @@
 | Issue | Theme |
 |-------|--------|
 | [#9](https://github.com/githubphadnis/xtav2/issues/9) | Mass upload from directory (init ingest) |
+| Security iteration | See [`docs/security-hardening-backlog.md`](./docs/security-hardening-backlog.md) |
 
 ### Closed (V1.0 / V1.1 partial)
 
@@ -51,7 +52,8 @@
 |-----------|------|
 | V1.0 | Live on notcoolio; daily manual logging + delete + ask + MCP |
 | V1.1 | Camera capture + mass upload (flagged) + bank CSV; Google Vision optional |
-| V1.2 | Email ingest + line items + savings insights |
+| V1.2 | Email ingest + savings insights |
+| V1.x | **Security & compliance hardening** (dedicated iteration — see `docs/security-hardening-backlog.md`) |
 | V2.0 | Trends UI, geo, public docs site polish |
 
 ---
