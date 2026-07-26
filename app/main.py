@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -25,6 +26,11 @@ logger = logging.getLogger("xtav2")
 
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+
+def today_iso(settings: Settings) -> str:
+    """Local calendar date for the app timezone."""
+    return datetime.now(ZoneInfo(settings.app_timezone)).date().isoformat()
 
 
 @asynccontextmanager
@@ -81,7 +87,7 @@ def home(
             "expenses": rows,
             "settings": settings,
             "flags": flag_snapshot(settings),
-            "today": date.today().isoformat(),
+            "today": today_iso(settings),
         },
     )
 
@@ -153,7 +159,7 @@ async def ask(
             "expenses": rows,
             "settings": settings,
             "flags": flag_snapshot(settings),
-            "today": date.today().isoformat(),
+            "today": today_iso(settings),
             "question": question,
             "answer": answer,
             "aggregate": aggregate,

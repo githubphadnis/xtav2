@@ -1,0 +1,16 @@
+[project]
+name = "xtav2"
+version = "0.1.0"
+requires-python = ">=3.12"
+description = "Self-hosted multi-currency expense tracker (XTA reboot)"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# B008: FastAPI Depends()/Form() in defaults is the framework pattern.
+ignore = ["B008"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
