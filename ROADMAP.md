@@ -31,7 +31,7 @@
 | Issue | Theme |
 |-------|--------|
 | [#9](https://github.com/githubphadnis/xtav2/issues/9) | Mass upload from directory (init ingest) |
-| Security iteration | See [`docs/security-hardening-backlog.md`](./docs/security-hardening-backlog.md) |
+| [#14](https://github.com/githubphadnis/xtav2/issues/14) | Security & compliance hardening |
 
 ### Closed (V1.0 / V1.1 partial)
 

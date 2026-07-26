@@ -2,7 +2,7 @@
 
 **Status:** deferred — collect here; execute in a dedicated iteration (not mixed into OCR/line-item delivery).
 
-**Tracking issue:** open/link GitHub issue “Security & compliance hardening”.
+**Tracking issue:** [#14](https://github.com/githubphadnis/xtav2/issues/14)
 
 ---
 
