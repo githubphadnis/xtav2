@@ -190,7 +190,7 @@ async def create_pending_from_upload(
                 settings, image_bytes=data, content_type=content_type
             )
             fields = _coerce_extract(settings, raw, today)
-        except Exception as exc:
+        except (RuntimeError, httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
             logger.warning("Vision OCR failed: %s", exc)
             warning = str(exc)
 

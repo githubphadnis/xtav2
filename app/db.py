@@ -8,6 +8,7 @@ from functools import lru_cache
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import DBAPIError, OperationalError, ProgrammingError
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import get_settings
@@ -53,7 +54,7 @@ def _patch_schema(engine: Engine) -> None:
         for stmt in statements:
             try:
                 conn.execute(text(stmt))
-            except Exception as exc:
+            except (OperationalError, ProgrammingError, DBAPIError) as exc:
                 # SQLite < 3.35 may lack IF NOT EXISTS for ADD COLUMN — ignore duplicate.
                 logger.debug("Schema patch skipped/failed for %s: %s", stmt, exc)
 
