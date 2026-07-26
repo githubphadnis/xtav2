@@ -61,3 +61,15 @@ def test_add_and_query_spend() -> None:
         result = expense_service.query_spend(db, settings=settings, q="crisps")
         assert result["count"] == 1
         assert result["total"] == 3.5
+
+        nl = expense_service.query_spend(
+            db, settings=settings, q="How much did I spend at REWE this year?"
+        )
+        assert nl["count"] == 2
+        assert nl["total"] == 15.5
+        assert "REWE" in nl["tokens"]
+
+
+def test_format_money() -> None:
+    assert expense_service.format_money(Decimal("200.0000")) == "200.00"
+    assert expense_service.format_money("3.5") == "3.50"

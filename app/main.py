@@ -17,8 +17,9 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.db import get_db, init_db
 from app.features import flag_snapshot, require_flag
-from app.integrations.ollama import ask_ollama
+from app.integrations.ollama import ask_ollama, list_models
 from app.services import expenses as expense_service
+from app.services.expenses import format_money
 
 settings = get_settings()
 logging.basicConfig(level=getattr(logging, settings.app_log_level.upper(), logging.INFO))
@@ -26,6 +27,7 @@ logger = logging.getLogger("xtav2")
 
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+templates.env.globals["format_money"] = format_money
 
 
 def today_iso(settings: Settings) -> str:
@@ -71,6 +73,23 @@ def health_db() -> dict[str, object]:
 @app.get("/health/flags")
 def health_flags(settings: Settings = Depends(get_settings)) -> dict[str, object]:
     return {"status": "ok", "flags": flag_snapshot(settings)}
+
+
+@app.get("/health/ollama")
+async def health_ollama(settings: Settings = Depends(get_settings)) -> dict[str, object]:
+    """Probe Ollama /api/tags and report configured vs available models."""
+    models = await list_models(settings)
+    configured = settings.ollama_model
+    ok = bool(models) and any(
+        m == configured or m.startswith(f"{configured}:") for m in models
+    )
+    return {
+        "status": "ok" if ok else "misconfigured",
+        "base_url": settings.ollama_base_url,
+        "configured_model": configured,
+        "available_models": models,
+        "reachable": bool(models),
+    }
 
 
 @app.get("/", response_class=HTMLResponse)

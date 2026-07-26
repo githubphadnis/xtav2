@@ -110,7 +110,7 @@
               <p class="font-medium">{{ e.merchant or e.category or "Expense" }}</p>
               <p class="text-xs text-emerald-950/60">{{ e.spent_on }} · {{ e.category }}</p>
             </div>
-            <p class="shrink-0 font-semibold tabular-nums">{{ e.amount }} {{ e.currency }}</p>
+            <p class="shrink-0 font-semibold tabular-nums">{{ format_money(e.amount) }} {{ e.currency }}</p>
           </div>
           {% if e.note %}<p class="mt-1 text-xs text-emerald-950/70">{{ e.note }}</p>{% endif %}
         </li>
