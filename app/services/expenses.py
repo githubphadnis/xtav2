@@ -59,7 +59,7 @@ _STOPWORDS = frozenset(
 )
 
 
-def format_money(amount: Decimal | float | int | str) -> str:
+def format_money(amount: Decimal | float | str) -> str:
     """Format amounts for UI as two decimal places."""
     value = Decimal(str(amount)).quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
     return f"{value:.2f}"
