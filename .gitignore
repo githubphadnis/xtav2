@@ -36,4 +36,5 @@ desktop.ini
 dist/
 build/
 uploads/
+uploads-test/
 !uploads/.gitkeep
