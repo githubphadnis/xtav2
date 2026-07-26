@@ -82,7 +82,7 @@
       <form method="post" action="/ask" class="space-y-3">
         <label class="block text-sm">
           <span class="mb-1 block text-emerald-950/70">Question</span>
-          <input required name="question" value="{{ question or '' }}"
+          <input required name="question" value=""
             placeholder="How much on crisps this quarter?"
             class="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3 py-3 text-base" />
         </label>
@@ -93,6 +93,7 @@
       </form>
       {% if answer %}
       <div class="mt-3 rounded-lg border border-[var(--line)] bg-white/80 p-3 text-sm leading-relaxed">
+        {% if question %}<p class="mb-2 text-xs text-emerald-950/60">Asked: {{ question }}</p>{% endif %}
         {{ answer }}
       </div>
       {% endif %}
