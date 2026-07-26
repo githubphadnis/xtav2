@@ -11,6 +11,7 @@ versioning: [Semantic Versioning](https://semver.org/).
 - Privacy toggle (`PRIVACY_LOCAL_ONLY` + Settings UI) — blocks Google Vision when on.
 - Optional Google Vision OCR path (`FEATURE_OCR_GOOGLE_VISION` + `GOOGLE_VISION_API_KEY`).
 - Professional mobile chrome: Fraunces + Source Sans 3, teal/paper palette (no muddy green gradient).
+- OCR post-processing: reject junk categories, absurd dates; tighter German-receipt vision prompt.
 - cOcO Rule 15 (Production-Path Parity) and Rule 16 (Rule Promotion) synced from scaffolding.
 - Expense delete in UI + MCP (`delete_expense`); default Ollama model `qwen2.5:14b`.
 - Feature flag `FEATURE_MASS_UPLOAD` (off) for directory/multi-file bootstrap.

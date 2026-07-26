@@ -31,12 +31,139 @@ _IMAGE_TYPES = {
     "image/heic": ".heic",
 }
 
-_STRUCTURE_SYSTEM = (
-    "Extract expense fields from receipt text. Return JSON only with keys: "
-    "amount (number), currency (3-letter), merchant (string), category (string), "
-    "spent_on (YYYY-MM-DD), note (string). Use null when unknown. "
-    "Prefer SUMME/TOTAL/Betrag as amount. German receipts use comma decimals."
+_STRUCTURE_SYSTEM = """You extract expense fields from a retail receipt image or text.
+Return ONLY a JSON object with these keys:
+  amount (number, e.g. 19.32), currency (3-letter ISO, usually EUR),
+  merchant (store name string), category (one short English word),
+  spent_on (YYYY-MM-DD), note (short string or null).
+
+Rules:
+- amount = the final TOTAL to pay (German: SUMME, Summe EUR, Gesamtbetrag, Bar, Karte).
+  Never use PAYBACK points, Steuernummer, PLZ, or line-item prices as amount.
+- German decimals use comma: 19,32 → 19.32
+- spent_on = receipt date. German format DD.MM.YY or DD.MM.YYYY.
+  Example: 25.07.26 → 2026-07-25 (21st century). Never invent a year.
+- merchant = store / company name printed near the top (e.g. REWE, Edeka), not a product.
+- category = ONE of: groceries, restaurant, fuel, pharmacy, household, other.
+  Never put product names, brands, or list syntax in category.
+- If a field is unreadable, use null. Do not hallucinate.
+"""
+
+_CATEGORY_ALLOW = {
+    "groceries",
+    "grocery",
+    "food",
+    "restaurant",
+    "dining",
+    "fuel",
+    "gas",
+    "petrol",
+    "pharmacy",
+    "chemist",
+    "household",
+    "other",
+    "receipt",
+    "shopping",
+    "transport",
+    "travel",
+    "entertainment",
+    "health",
+}
+
+_DE_DATE = re.compile(
+    r"\b(\d{1,2})[./](\d{1,2})[./](\d{2}|\d{4})\b"
 )
+
+
+def _parse_spent_on(value: object, today: date) -> date:
+    """Parse ISO or German dates; reject absurd years relative to today."""
+    if value is None:
+        return today
+    text = str(value).strip()
+    parsed: date | None = None
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", text[:10]):
+        try:
+            parsed = date.fromisoformat(text[:10])
+        except ValueError:
+            parsed = None
+    if parsed is None:
+        match = _DE_DATE.search(text)
+        if match:
+            day, month, year_s = match.groups()
+            year = int(year_s)
+            if year < 100:
+                year += 2000
+            try:
+                parsed = date(year, int(month), int(day))
+            except ValueError:
+                parsed = None
+    if parsed is None:
+        return today
+    # Reject dates more than ~2 years from today (model year hallucinations).
+    if abs((parsed - today).days) > 730:
+        return today
+    return parsed
+
+
+def _sanitize_category(raw: object) -> str:
+    text = str(raw or "").strip()
+    if not text:
+        return "receipt"
+    # Reject list/JSON debris and product-line junk (e.g. "['HERZ ASSASSIN").
+    if any(ch in text for ch in "[]{}'\""):
+        return "receipt"
+    if len(text) > 40 or "," in text or "\n" in text:
+        return "receipt"
+    lowered = text.lower()
+    if lowered in _CATEGORY_ALLOW:
+        if lowered in {"grocery", "food", "shopping"}:
+            return "groceries"
+        if lowered in {"dining"}:
+            return "restaurant"
+        if lowered in {"gas", "petrol"}:
+            return "fuel"
+        if lowered in {"chemist", "health"}:
+            return "pharmacy"
+        return lowered
+    # Unknown short token — keep if it looks like a plain word
+    if re.fullmatch(r"[A-Za-z][A-Za-z -]{0,24}", text):
+        return text.lower()
+    return "receipt"
+
+
+def _sanitize_merchant(raw: object) -> str:
+    text = str(raw or "").strip()
+    if not text or any(ch in text for ch in "[]{}"):
+        return ""
+    # Drop trailing legal noise length if absurdly long
+    return text[:120]
+
+
+def _coerce_extract(
+    settings: Settings, raw: dict[str, object], today: date
+) -> dict[str, object]:
+    amount = Decimal("0.00")
+    if raw.get("amount") is not None:
+        try:
+            amount = Decimal(str(raw["amount"]).replace(",", "."))
+        except (InvalidOperation, ValueError):
+            amount = Decimal("0.00")
+    if amount < 0:
+        amount = Decimal("0.00")
+    currency = str(raw.get("currency") or settings.base_currency).strip().upper()[:3]
+    if not re.fullmatch(r"[A-Z]{3}", currency):
+        currency = settings.base_currency.upper()
+    note = str(raw.get("note") or "").strip()
+    if note.upper() in {"SUMME", "TOTAL", "GESAMTBETRAG", "NULL"}:
+        note = ""
+    return {
+        "amount": amount,
+        "currency": currency or settings.base_currency.upper(),
+        "merchant": _sanitize_merchant(raw.get("merchant")),
+        "category": _sanitize_category(raw.get("category")),
+        "spent_on": _parse_spent_on(raw.get("spent_on"), today),
+        "note": note[:255],
+    }
 
 
 def upload_root(settings: Settings) -> Path:
@@ -81,32 +208,6 @@ def _parse_extract_json(content: str) -> dict[str, object]:
     return raw
 
 
-def _coerce_extract(
-    settings: Settings, raw: dict[str, object], today: date
-) -> dict[str, object]:
-    amount = Decimal("0.00")
-    if raw.get("amount") is not None:
-        try:
-            amount = Decimal(str(raw["amount"]).replace(",", "."))
-        except (InvalidOperation, ValueError):
-            amount = Decimal("0.00")
-    currency = str(raw.get("currency") or settings.base_currency).strip().upper()[:3]
-    spent_on = today
-    if raw.get("spent_on"):
-        try:
-            spent_on = date.fromisoformat(str(raw["spent_on"])[:10])
-        except ValueError:
-            spent_on = today
-    return {
-        "amount": amount,
-        "currency": currency or settings.base_currency.upper(),
-        "merchant": str(raw.get("merchant") or "").strip(),
-        "category": str(raw.get("category") or "receipt").strip() or "receipt",
-        "spent_on": spent_on,
-        "note": str(raw.get("note") or "").strip(),
-    }
-
-
 async def extract_via_ollama_vision(
     settings: Settings, *, image_bytes: bytes, content_type: str
 ) -> dict[str, object]:
@@ -120,16 +221,23 @@ async def extract_via_ollama_vision(
             f"Vision model '{model}' not on lenai. Available: {', '.join(available)}"
         )
 
+    today = datetime.now(ZoneInfo(settings.app_timezone)).date()
     b64 = base64.b64encode(image_bytes).decode("ascii")
+    user_prompt = (
+        f"Today's date is {today.isoformat()}. "
+        "Read the receipt image. Extract amount (SUMME/total), currency, merchant, "
+        "category, spent_on, note. Return JSON only."
+    )
     payload = {
         "model": model,
         "stream": False,
         "format": "json",
+        "options": {"temperature": 0.1},
         "messages": [
             {"role": "system", "content": _STRUCTURE_SYSTEM},
             {
                 "role": "user",
-                "content": "Read this receipt and extract the fields.",
+                "content": user_prompt,
                 "images": [b64],
             },
         ],
@@ -181,7 +289,11 @@ async def extract_text_via_google_vision(
 
 async def structure_text_with_ollama(settings: Settings, *, text: str) -> dict[str, object]:
     """Turn OCR text into expense JSON using the local chat model."""
-    prompt = f"Receipt text:\n{text[:6000]}\n\nReturn JSON only."
+    today = datetime.now(ZoneInfo(settings.app_timezone)).date()
+    prompt = (
+        f"Today's date is {today.isoformat()}.\n"
+        f"Receipt text:\n{text[:6000]}\n\nReturn JSON only."
+    )
     content = await ask_ollama(settings, prompt, _STRUCTURE_SYSTEM)
     return _parse_extract_json(content)
 

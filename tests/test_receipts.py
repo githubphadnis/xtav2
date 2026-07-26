@@ -95,3 +95,36 @@ def test_reject_oversized_upload() -> None:
     except ValueError:
         raised = True
     assert raised
+
+
+def test_coerce_sanitizes_bad_vision_fields() -> None:
+    from app.config import Settings
+    from app.services.receipts import _coerce_extract
+
+    settings = Settings(base_currency="EUR")
+    today = date(2026, 7, 26)
+    out = _coerce_extract(
+        settings,
+        {
+            "amount": "19,32",
+            "currency": "EUR",
+            "merchant": "REWE",
+            "category": "['HERZ ASSASSIN",
+            "spent_on": "2016-08-30",
+            "note": "SUMME",
+        },
+        today,
+    )
+    assert out["amount"] == Decimal("19.32")
+    assert out["category"] == "receipt"
+    assert out["spent_on"] == today  # absurd year → today
+    assert out["note"] == ""
+    assert out["merchant"] == "REWE"
+
+    de = _coerce_extract(
+        settings,
+        {"amount": 12.5, "spent_on": "25.07.26", "category": "groceries"},
+        today,
+    )
+    assert de["spent_on"] == date(2026, 7, 25)
+    assert de["category"] == "groceries"
