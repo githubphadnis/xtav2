@@ -1,0 +1,68 @@
+# Portainer stack for notcoolio — pull images from GHCR (no local build).
+#
+# In Portainer: Stacks → Add stack → Git repository
+#   Repository: https://github.com/githubphadnis/xtav2
+#   Compose path: docker-compose.portainer.yml
+#   Branch: main
+#
+# Set stack environment variables in Portainer (see docs/deploy-portainer.md).
+
+services:
+  postgres:
+    container_name: xtav2-postgres
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-xtav2}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-xtav2}
+    volumes:
+      - xtav2_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-xtav2} -d ${POSTGRES_DB:-xtav2}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - xtav2
+
+  app:
+    container_name: xtav2-app
+    image: ghcr.io/githubphadnis/xtav2:main
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-xtav2}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-xtav2}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Amsterdam}
+      BASE_CURRENCY: ${BASE_CURRENCY:-EUR}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://lenai:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-60}
+      FEATURE_MANUAL_ENTRY: ${FEATURE_MANUAL_ENTRY:-true}
+      FEATURE_MULTI_CURRENCY: ${FEATURE_MULTI_CURRENCY:-true}
+      FEATURE_OLLAMA_QA: ${FEATURE_OLLAMA_QA:-true}
+      FEATURE_MCP: ${FEATURE_MCP:-true}
+      FEATURE_RECEIPT_OCR: ${FEATURE_RECEIPT_OCR:-false}
+      FEATURE_OCR_OLLAMA_VISION: ${FEATURE_OCR_OLLAMA_VISION:-false}
+      FEATURE_OCR_GOOGLE_VISION: ${FEATURE_OCR_GOOGLE_VISION:-false}
+      FEATURE_BANK_IMPORT: ${FEATURE_BANK_IMPORT:-false}
+      FEATURE_EMAIL_INGEST: ${FEATURE_EMAIL_INGEST:-false}
+      FEATURE_LINE_ITEMS: ${FEATURE_LINE_ITEMS:-false}
+      FEATURE_SAVINGS_INSIGHTS: ${FEATURE_SAVINGS_INSIGHTS:-false}
+      FEATURE_TRENDS_UI: ${FEATURE_TRENDS_UI:-false}
+      FEATURE_GEO: ${FEATURE_GEO:-false}
+    ports:
+      - "${XTAV2_HOST_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - xtav2
+
+volumes:
+  xtav2_pgdata:
+
+networks:
+  xtav2:
+    name: xtav2

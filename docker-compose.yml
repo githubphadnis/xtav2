@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-xtav2}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-xtav2}
+      POSTGRES_DB: ${POSTGRES_DB:-xtav2}
+    ports:
+      - "5433:5432"
+    volumes:
+      - xtav2_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-xtav2} -d ${POSTGRES_DB:-xtav2}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-xtav2}:${POSTGRES_PASSWORD:-xtav2}@postgres:5432/${POSTGRES_DB:-xtav2}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  xtav2_pgdata:

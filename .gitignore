@@ -1,0 +1,37 @@
+# Credentials — NEVER commit these
+.env
+gh_tap.txt
+*.key
+*.pem
+*.crt
+secrets/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local artifacts
+*.sqlite3
+*.log
+dist/
+build/

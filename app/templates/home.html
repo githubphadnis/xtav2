@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>xtav2</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --ink: #12231a;
+      --paper: #f3f6f1;
+      --accent: #1f6f54;
+      --line: #d5e0d8;
+    }
+    body {
+      font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #d9ebe2 0%, transparent 55%),
+        linear-gradient(180deg, #eef3ee 0%, var(--paper) 40%, #e7eee8 100%);
+      color: var(--ink);
+      min-height: 100dvh;
+    }
+  </style>
+</head>
+<body class="antialiased">
+  <main class="mx-auto max-w-md px-4 pb-24 pt-6">
+    <header class="mb-6">
+      <p class="text-xs uppercase tracking-[0.2em] text-emerald-800/70">Expense ledger</p>
+      <h1 class="mt-1 text-3xl font-semibold tracking-tight">xtav2</h1>
+      <p class="mt-1 text-sm text-emerald-950/70">Mobile-first · local Ollama · MCP-ready</p>
+    </header>
+
+    {% if settings.feature_manual_entry %}
+    <section class="mb-8">
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-emerald-900/80">Add expense</h2>
+      <form method="post" action="/expenses" class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <label class="block text-sm">
+            <span class="mb-1 block text-emerald-950/70">Date</span>
+            <input required type="date" name="spent_on" value="{{ today }}"
+              class="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3 py-3 text-base" />
+          </label>
+          <label class="block text-sm">
+            <span class="mb-1 block text-emerald-950/70">Amount</span>
+            <input required inputmode="decimal" name="amount" placeholder="0.00"
+              class="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3 py-3 text-base" />
+          </label>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="block text-sm">
+            <span class="mb-1 block text-emerald-950/70">Currency</span>
+            <input required name="currency" maxlength="3" value="{{ settings.base_currency }}"
+              class="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3 py-3 text-base uppercase" />
+          </label>
+          <label class="block text-sm">
+            <span class="mb-1 block text-emerald-950/70">Category</span>
+            <input name="category" placeholder="groceries"
+              class="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3 py-3 text-base" />
+          </label>
+        </div>
+        <label class="block text-sm">
+          <span class="mb-1 block text-emerald-950/70">Merchant</span>
+          <input name="merchant" placeholder="REWE"
+            class="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3 py-3 text-base" />
+        </label>
+        <label class="block text-sm">
+          <span class="mb-1 block text-emerald-950/70">Note</span>
+          <input name="note" placeholder="crisps, milk…"
+            class="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3 py-3 text-base" />
+        </label>
+        <button type="submit"
+          class="w-full rounded-lg bg-[var(--accent)] px-4 py-3 text-base font-medium text-white">
+          Save
+        </button>
+      </form>
+    </section>
+    {% endif %}
+
+    {% if settings.feature_ollama_qa %}
+    <section class="mb-8">
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-emerald-900/80">Ask</h2>
+      <form method="post" action="/ask" class="space-y-3">
+        <label class="block text-sm">
+          <span class="mb-1 block text-emerald-950/70">Question</span>
+          <input required name="question" value="{{ question or '' }}"
+            placeholder="How much on crisps this quarter?"
+            class="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3 py-3 text-base" />
+        </label>
+        <button type="submit"
+          class="w-full rounded-lg border border-emerald-800/30 bg-white/70 px-4 py-3 text-base font-medium text-emerald-950">
+          Ask Ollama
+        </button>
+      </form>
+      {% if answer %}
+      <div class="mt-3 rounded-lg border border-[var(--line)] bg-white/80 p-3 text-sm leading-relaxed">
+        {{ answer }}
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <section>
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-emerald-900/80">Recent</h2>
+      {% if expenses %}
+      <ul class="space-y-2">
+        {% for e in expenses %}
+        <li class="rounded-lg border border-[var(--line)] bg-white/75 px-3 py-3">
+          <div class="flex items-baseline justify-between gap-3">
+            <div>
+              <p class="font-medium">{{ e.merchant or e.category or "Expense" }}</p>
+              <p class="text-xs text-emerald-950/60">{{ e.spent_on }} · {{ e.category }}</p>
+            </div>
+            <p class="shrink-0 font-semibold tabular-nums">{{ e.amount }} {{ e.currency }}</p>
+          </div>
+          {% if e.note %}<p class="mt-1 text-xs text-emerald-950/70">{{ e.note }}</p>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-sm text-emerald-950/60">No expenses yet. Add one above.</p>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

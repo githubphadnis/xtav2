@@ -1,0 +1,19 @@
+# Git
+.git
+.gitignore
+
+# Credentials
+gh_tap.txt
+.env
+*.key
+*.pem
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

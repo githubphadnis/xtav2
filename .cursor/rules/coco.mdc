@@ -1,0 +1,7 @@
+---
+description: cOcO project standard
+alwaysApply: true
+---
+
+Follow `AGENTS.md` at the project root. It is the single source of truth for
+coding style (`CODING_GUIDELINES.md`) and process/governance (`agent_rules.md`).
