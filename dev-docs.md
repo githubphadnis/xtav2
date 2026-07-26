@@ -11,6 +11,7 @@
 | 2026-07-26 | MCP server as V1 module | Cursor/agents need structured tools; same services as UI |
 | 2026-07-26 | Every feature behind `FEATURE_*` flags | Ship V1 live; enable OCR/bank/email later without forks |
 | 2026-07-26 | OCR deferred; Ollama vision before Google Vision | Privacy-aligned; Google Vision optional escape hatch |
+| 2026-07-26 | Normalize `postgresql://` → `postgresql+psycopg://` | Same monsoon fix — plain URL loads missing psycopg2 |
 
 ## Errors Faced & Solutions
 
