@@ -6,17 +6,18 @@
 
 ## Current State / WIP
 
-- **Live:** https://xta.pphadnis.com/ (Cloudflare tunnel + Portainer on notcoolio)
-- Ollama model configured on Portainer; Ask + manual CRUD + delete in use
-- Next: CI image smoke (#6), then camera (#8) / mass upload (#9)
+- **Live:** https://xta.pphadnis.com/
+- Camera capture (#8) code on `main` — enable with `FEATURE_RECEIPT_OCR=true`
+- Vision OCR off by default (no vision model on lenai yet)
+- Next product: mass upload (#9)
 
 ## Broken Things
 
-- CI image smoke not yet on `main` until this session's push lands
-- Camera / mass upload still flagged off
+- None known for core ledger/Ask
+- Auto OCR will fail until `OLLAMA_VISION_MODEL` is pulled + flag on
 
 ## Next Immediate Steps
 
-1. Land Docker Publish `smoke` job (#6) and confirm Actions green
-2. Start `#8` camera capture behind `FEATURE_RECEIPT_OCR`
-3. Then `#9` mass upload behind `FEATURE_MASS_UPLOAD`
+1. Portainer: `FEATURE_RECEIPT_OCR=true`, pull latest image, ensure uploads volume
+2. Phone test: camera → pending → confirm
+3. Start #9 mass upload

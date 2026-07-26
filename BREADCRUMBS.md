@@ -2,9 +2,9 @@
 
 ## Session: 2026-07-26
 
-- **Work done:** Closed shipped issues #1–#5; tunnel documented as
-  https://xta.pphadnis.com/; implementing CI Docker image smoke (#6).
-- **Current branch / state:** main
-- **Next immediate action:** Confirm smoke job green; then camera (#8).
-- **Environment notes:** Live URL https://xta.pphadnis.com/; host port 4280;
-  Ollama model set in Portainer.
+- **Work done:** #8 camera capture — pending receipt drafts, upload volume,
+  optional vision OCR flag; tests green.
+- **Current branch / state:** main (pushing)
+- **Next immediate action:** Portainer set `FEATURE_RECEIPT_OCR=true`, redeploy,
+  verify camera → pending → confirm on https://xta.pphadnis.com/; then #9 mass upload.
+- **Environment notes:** Vision OCR stays off until a vision model exists on lenai.

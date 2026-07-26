@@ -38,7 +38,11 @@ services:
       BASE_CURRENCY: ${BASE_CURRENCY:-EUR}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://lenai:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:14b}
+      OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-}
       OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-60}
+      OLLAMA_VISION_TIMEOUT_SECONDS: ${OLLAMA_VISION_TIMEOUT_SECONDS:-120}
+      UPLOAD_DIR: ${UPLOAD_DIR:-/data/uploads}
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-10}
       FEATURE_MANUAL_ENTRY: ${FEATURE_MANUAL_ENTRY:-true}
       FEATURE_MULTI_CURRENCY: ${FEATURE_MULTI_CURRENCY:-true}
       FEATURE_OLLAMA_QA: ${FEATURE_OLLAMA_QA:-true}
@@ -53,6 +57,8 @@ services:
       FEATURE_SAVINGS_INSIGHTS: ${FEATURE_SAVINGS_INSIGHTS:-false}
       FEATURE_TRENDS_UI: ${FEATURE_TRENDS_UI:-false}
       FEATURE_GEO: ${FEATURE_GEO:-false}
+    volumes:
+      - xtav2_uploads:/data/uploads
     ports:
       # notcoolio: 8080 is typically monsoon/XTA — pick a free host port
       - "${XTAV2_HOST_PORT:-4280}:8080"
@@ -64,6 +70,7 @@ services:
 
 volumes:
   xtav2_pgdata:
+  xtav2_uploads:
 
 networks:
   xtav2:

@@ -9,6 +9,7 @@ from decimal import Decimal
 # Configure before app imports resolve settings/engine.
 os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
 os.environ["FEATURE_MULTI_CURRENCY"] = "true"
+os.environ["FEATURE_RECEIPT_OCR"] = "false"
 os.environ["BASE_CURRENCY"] = "EUR"
 
 from app.config import get_settings
@@ -20,6 +21,7 @@ get_settings.cache_clear()
 
 
 def setup_function() -> None:
+    os.environ["FEATURE_RECEIPT_OCR"] = "false"
     get_settings.cache_clear()
     from app import db as db_mod
 

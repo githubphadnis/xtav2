@@ -1,0 +1,96 @@
+"""Receipt capture service tests."""
+
+from __future__ import annotations
+
+import os
+from datetime import date
+from decimal import Decimal
+from pathlib import Path
+
+os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
+os.environ["FEATURE_RECEIPT_OCR"] = "true"
+os.environ["FEATURE_OCR_OLLAMA_VISION"] = "false"
+os.environ["UPLOAD_DIR"] = "uploads-test"
+
+from app.config import get_settings
+from app.db import get_session_factory, init_db
+from app.services import expenses as expense_service
+from app.services.receipts import create_pending_from_upload, save_receipt_bytes
+
+get_settings.cache_clear()
+
+
+def setup_function() -> None:
+    get_settings.cache_clear()
+    from app import db as db_mod
+
+    db_mod.get_engine.cache_clear()
+    db_mod.get_session_factory.cache_clear()
+    init_db()
+    Path("uploads-test").mkdir(exist_ok=True)
+
+
+def test_save_and_pending_receipt_without_vision() -> None:
+    import asyncio
+
+    settings = get_settings()
+    SessionLocal = get_session_factory()
+    # Minimal JPEG header bytes are enough for storage; content-type drives extension.
+    data = b"\xff\xd8\xff\xe0" + b"\x00" * 64
+
+    async def _run():
+        with SessionLocal() as db:
+            row, warning = await create_pending_from_upload(
+                db,
+                settings=settings,
+                data=data,
+                content_type="image/jpeg",
+                filename="receipt.jpg",
+            )
+            assert warning is None
+            assert row.status == "pending"
+            assert row.source == "receipt"
+            assert row.receipt_path
+            assert (Path(settings.upload_dir) / row.receipt_path).is_file()
+            pending = expense_service.list_pending(db)
+            assert len(pending) == 1
+            posted = expense_service.list_expenses(db, status="posted")
+            assert posted == []
+            confirmed = expense_service.update_expense(
+                db,
+                settings=settings,
+                expense_id=row.id,
+                spent_on=date(2026, 7, 26),
+                amount=Decimal("12.50"),
+                currency="EUR",
+                merchant="REWE",
+                category="groceries",
+                note="milk",
+                status="posted",
+            )
+            assert confirmed is not None
+            assert confirmed.status == "posted"
+            assert expense_service.list_pending(db) == []
+            assert expense_service.query_spend(db, settings=settings)["total"] == 12.5
+
+    asyncio.run(_run())
+
+
+def test_reject_oversized_upload() -> None:
+    settings = get_settings()
+    settings.max_upload_size_mb = 0  # force tiny limit via object — settings is cached
+    # Re-read via env for clarity in a fresh settings object is hard with cache;
+    # call save with huge payload against MB=10 default and skip — use direct ValueError path:
+    from app.config import Settings
+
+    tiny = Settings(
+        database_url="sqlite+pysqlite:///:memory:",
+        upload_dir="uploads-test",
+        max_upload_size_mb=0,
+    )
+    try:
+        save_receipt_bytes(tiny, data=b"abc", content_type="image/jpeg", filename="a.jpg")
+        raised = False
+    except ValueError:
+        raised = True
+    assert raised

@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Generator
 from functools import lru_cache
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import get_settings
+
+logger = logging.getLogger("xtav2.db")
 
 
 class Base(DeclarativeBase):
@@ -40,11 +43,28 @@ def get_session_factory() -> sessionmaker[Session]:
     return sessionmaker(bind=get_engine(), autoflush=False, autocommit=False)
 
 
+def _patch_schema(engine: Engine) -> None:
+    """Idempotent column adds for existing Postgres/SQLite volumes."""
+    statements = [
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'posted'",
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS receipt_path VARCHAR(512)",
+    ]
+    with engine.begin() as conn:
+        for stmt in statements:
+            try:
+                conn.execute(text(stmt))
+            except Exception as exc:
+                # SQLite < 3.35 may lack IF NOT EXISTS for ADD COLUMN — ignore duplicate.
+                logger.debug("Schema patch skipped/failed for %s: %s", stmt, exc)
+
+
 def init_db() -> None:
-    """Create tables if missing (idempotent for V1; Alembic later)."""
+    """Create tables if missing and patch new columns (idempotent for V1)."""
     from app import models  # noqa: F401
 
-    Base.metadata.create_all(bind=get_engine())
+    engine = get_engine()
+    Base.metadata.create_all(bind=engine)
+    _patch_schema(engine)
 
 
 def get_db() -> Generator[Session, None, None]:

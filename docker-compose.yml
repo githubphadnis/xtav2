@@ -23,9 +23,13 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-xtav2}:${POSTGRES_PASSWORD:-xtav2}@postgres:5432/${POSTGRES_DB:-xtav2}
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - xtav2_uploads:/data/uploads
     depends_on:
       postgres:
         condition: service_healthy
 
 volumes:
   xtav2_pgdata:
+  xtav2_uploads:

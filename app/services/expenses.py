@@ -109,6 +109,8 @@ def add_expense(
     category: str = "",
     note: str = "",
     source: str = "manual",
+    status: str = "posted",
+    receipt_path: str | None = None,
 ) -> Expense:
     """Persist an expense; copy amount to base when multi-currency is off or same FX."""
     amount = amount.quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
@@ -142,8 +144,45 @@ def add_expense(
         category=category.strip(),
         note=note.strip(),
         source=source,
+        status=status,
+        receipt_path=receipt_path,
     )
     db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def update_expense(
+    db: Session,
+    *,
+    settings: Settings,
+    expense_id: int,
+    spent_on: date,
+    amount: Decimal,
+    currency: str,
+    merchant: str = "",
+    category: str = "",
+    note: str = "",
+    status: str | None = None,
+) -> Expense | None:
+    """Update fields on an expense; optionally change status (e.g. pending → posted)."""
+    row = db.get(Expense, expense_id)
+    if row is None:
+        return None
+    amount = amount.quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
+    currency_norm = currency.strip().upper()
+    row.spent_on = spent_on
+    row.amount = amount
+    row.currency = currency_norm
+    row.merchant = merchant.strip()
+    row.category = category.strip()
+    row.note = note.strip()
+    if status is not None:
+        row.status = status
+    if settings.feature_multi_currency and currency_norm == settings.base_currency.upper():
+        row.amount_base = amount
+        row.base_currency = currency_norm
     db.commit()
     db.refresh(row)
     return row
@@ -166,11 +205,14 @@ def list_expenses(
     category: str | None = None,
     merchant: str | None = None,
     q: str | None = None,
+    status: str | None = "posted",
 ) -> list[Expense]:
-    """Return recent expenses with optional filters."""
+    """Return recent expenses with optional filters (default: posted only)."""
     stmt: Select[tuple[Expense]] = select(Expense).order_by(
         Expense.spent_on.desc(), Expense.id.desc()
     )
+    if status is not None:
+        stmt = stmt.where(Expense.status == status)
     if category:
         stmt = stmt.where(Expense.category.ilike(category.strip()))
     if merchant:
@@ -180,6 +222,11 @@ def list_expenses(
         stmt = stmt.where(text_clause)
     stmt = stmt.limit(max(1, min(limit, 200)))
     return list(db.scalars(stmt).all())
+
+
+def list_pending(db: Session, *, limit: int = 50) -> list[Expense]:
+    """Return pending receipt drafts newest first."""
+    return list_expenses(db, limit=limit, status="pending")
 
 
 def query_spend(
@@ -195,7 +242,9 @@ def query_spend(
     currency_label = (
         settings.base_currency.upper() if settings.feature_multi_currency else "mixed"
     )
-    stmt = select(func.coalesce(func.sum(amount_col), 0), func.count(Expense.id))
+    stmt = select(func.coalesce(func.sum(amount_col), 0), func.count(Expense.id)).where(
+        Expense.status == "posted"
+    )
     if start:
         stmt = stmt.where(Expense.spent_on >= start)
     if end:

@@ -25,5 +25,13 @@
 
 ## Cloudflare
 
-Point a tunnel hostname at the app container port (default `8080`). Prefer
-Cloudflare Access for auth before public launch hardening is complete.
+Point a tunnel hostname at the app container port (default `8080` inside Docker /
+`XTAV2_HOST_PORT` on the host). Prefer Cloudflare Access for auth before public
+launch hardening is complete.
+
+**Live:** https://xta.pphadnis.com/
+
+## Receipt uploads
+
+Enable `FEATURE_RECEIPT_OCR=true` and ensure the `xtav2_uploads` volume is present
+(see `docker-compose.portainer.yml`). Details: [`receipts.md`](./receipts.md).

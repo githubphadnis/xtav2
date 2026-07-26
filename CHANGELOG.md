@@ -11,6 +11,7 @@ versioning: [Semantic Versioning](https://semver.org/).
 - Expense delete in UI + MCP (`delete_expense`); default Ollama model `qwen2.5:14b`.
 - Feature flag `FEATURE_MASS_UPLOAD` (off) for directory/multi-file bootstrap.
 - Docker Publish **smoke** job: run image + Postgres, hit `/health/live|db|flags|ollama`.
+- Receipt **camera capture** (`FEATURE_RECEIPT_OCR`): pending queue + confirm; optional Ollama vision.
 
 - Initial cOcO Governed scaffold and XTAv2 V1 skeleton.
 - Manual expense entry (mobile-first UI) behind `FEATURE_MANUAL_ENTRY`.

@@ -29,7 +29,13 @@ class Settings(BaseSettings):
 
     ollama_base_url: str = "http://lenai:11434"
     ollama_model: str = "qwen2.5:14b"
+    # Vision model for receipt OCR — must exist on lenai when FEATURE_OCR_OLLAMA_VISION=true
+    ollama_vision_model: str = ""
     ollama_timeout_seconds: int = 60
+    ollama_vision_timeout_seconds: int = 120
+
+    upload_dir: str = "uploads"
+    max_upload_size_mb: int = 10
 
     feature_manual_entry: bool = True
     feature_multi_currency: bool = True

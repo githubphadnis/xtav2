@@ -26,6 +26,8 @@ class Expense(Base):
     category: Mapped[str] = mapped_column(String(128), default="", index=True)
     note: Mapped[str] = mapped_column(Text, default="")
     source: Mapped[str] = mapped_column(String(64), default="manual")
+    status: Mapped[str] = mapped_column(String(32), default="posted", index=True)
+    receipt_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

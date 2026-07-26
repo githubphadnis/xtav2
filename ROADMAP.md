@@ -30,8 +30,7 @@
 
 | Issue | Theme |
 |-------|--------|
-| [#6](https://github.com/githubphadnis/xtav2/issues/6) | CI image smoke (Postgres + health) — in progress |
-| [#8](https://github.com/githubphadnis/xtav2/issues/8) | Camera capture (receipt OCR path) |
+| [#8](https://github.com/githubphadnis/xtav2/issues/8) | Camera capture — **shipped (flag off by default)** |
 | [#9](https://github.com/githubphadnis/xtav2/issues/9) | Mass upload from directory (init ingest) |
 
 ### Closed (V1.0 ops / core)

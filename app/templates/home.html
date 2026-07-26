@@ -30,6 +30,79 @@
       <p class="mt-1 text-sm text-emerald-950/70">Mobile-first · local Ollama · MCP-ready</p>
     </header>
 
+    {% if flash %}
+    <div class="mb-4 rounded-lg border border-emerald-800/20 bg-white/80 px-3 py-2 text-sm">
+      {{ flash }}
+    </div>
+    {% endif %}
+
+    {% if settings.feature_receipt_ocr %}
+    <section class="mb-8">
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-emerald-900/80">Receipt camera</h2>
+      <form method="post" action="/receipts/upload" enctype="multipart/form-data" class="space-y-3">
+        <label class="block text-sm">
+          <span class="mb-1 block text-emerald-950/70">Take photo or choose image</span>
+          <input required type="file" name="file" accept="image/*" capture="environment"
+            class="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3 py-3 text-base" />
+        </label>
+        <button type="submit"
+          class="w-full rounded-lg bg-[var(--accent)] px-4 py-3 text-base font-medium text-white">
+          Upload receipt
+        </button>
+      </form>
+      <p class="mt-2 text-xs text-emerald-950/60">
+        Creates a pending draft for review.
+        {% if settings.feature_ocr_ollama_vision %}Vision OCR is on.{% else %}Vision OCR is off — fill fields manually.{% endif %}
+      </p>
+    </section>
+
+    {% if pending %}
+    <section class="mb-8">
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-emerald-900/80">Pending receipts</h2>
+      <ul class="space-y-4">
+        {% for e in pending %}
+        <li class="rounded-lg border border-amber-700/30 bg-white/80 p-3">
+          {% if e.receipt_path %}
+          <img src="/uploads/{{ e.receipt_path }}" alt="Receipt"
+               class="mb-3 max-h-40 w-full rounded-md object-cover" />
+          {% endif %}
+          <form method="post" action="/expenses/{{ e.id }}/confirm" class="space-y-2">
+            <div class="grid grid-cols-2 gap-2">
+              <input required type="date" name="spent_on" value="{{ e.spent_on }}"
+                class="w-full rounded-lg border border-[var(--line)] px-2 py-2 text-sm" />
+              <input required inputmode="decimal" name="amount" value="{{ format_money(e.amount) }}"
+                class="w-full rounded-lg border border-[var(--line)] px-2 py-2 text-sm" />
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <input required name="currency" maxlength="3" value="{{ e.currency }}"
+                class="w-full rounded-lg border border-[var(--line)] px-2 py-2 text-sm uppercase" />
+              <input name="category" value="{{ e.category }}"
+                class="w-full rounded-lg border border-[var(--line)] px-2 py-2 text-sm" placeholder="category" />
+            </div>
+            <input name="merchant" value="{{ e.merchant }}"
+              class="w-full rounded-lg border border-[var(--line)] px-2 py-2 text-sm" placeholder="merchant" />
+            <input name="note" value="{{ e.note }}"
+              class="w-full rounded-lg border border-[var(--line)] px-2 py-2 text-sm" placeholder="note" />
+            <div class="flex gap-2">
+              <button type="submit"
+                class="flex-1 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white">
+                Confirm
+              </button>
+              <button form="del-{{ e.id }}" type="submit"
+                class="rounded-lg border border-red-800/30 px-3 py-2 text-sm text-red-900"
+                onclick="return confirm('Delete this draft?');">
+                Delete
+              </button>
+            </div>
+          </form>
+          <form id="del-{{ e.id }}" method="post" action="/expenses/{{ e.id }}/delete" class="hidden"></form>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+    {% endif %}
+
     {% if settings.feature_manual_entry %}
     <section class="mb-8">
       <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-emerald-900/80">Add expense</h2>
