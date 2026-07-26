@@ -10,6 +10,9 @@ from decimal import Decimal
 os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
 os.environ["FEATURE_MULTI_CURRENCY"] = "true"
 os.environ["FEATURE_RECEIPT_OCR"] = "false"
+os.environ["FEATURE_OCR_GOOGLE_VISION"] = "false"
+os.environ["PRIVACY_LOCAL_ONLY"] = "true"
+os.environ["GOOGLE_VISION_API_KEY"] = ""
 os.environ["BASE_CURRENCY"] = "EUR"
 
 from app.config import get_settings
@@ -22,6 +25,9 @@ get_settings.cache_clear()
 
 def setup_function() -> None:
     os.environ["FEATURE_RECEIPT_OCR"] = "false"
+    os.environ["FEATURE_OCR_GOOGLE_VISION"] = "false"
+    os.environ["PRIVACY_LOCAL_ONLY"] = "true"
+    os.environ["GOOGLE_VISION_API_KEY"] = ""
     get_settings.cache_clear()
     from app import db as db_mod
 

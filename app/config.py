@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     feature_ocr_google_vision: bool = False
     feature_bank_import: bool = False
     feature_email_ingest: bool = False
-    feature_line_items: bool = False
+    feature_line_items: bool = True
     feature_savings_insights: bool = False
     feature_trends_ui: bool = False
     feature_geo: bool = False

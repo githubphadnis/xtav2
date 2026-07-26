@@ -31,8 +31,12 @@
     <dd>{{ "on" if settings.feature_ocr_ollama_vision else "off" }}</dd>
     <dt>Google Vision flag</dt>
     <dd>{{ "on" if settings.feature_ocr_google_vision else "off" }}</dd>
+    <dt>Google API key</dt>
+    <dd>{{ "set" if google_key_configured else "missing" }}</dd>
     <dt>Google Vision effective</dt>
     <dd>{{ "yes" if google_vision_effective else "no" }}</dd>
+    <dt>Line items</dt>
+    <dd>{{ "on" if settings.feature_line_items else "off" }}</dd>
     <dt>Env privacy default</dt>
     <dd>{{ "on" if settings.privacy_local_only else "off" }}</dd>
   </dl>

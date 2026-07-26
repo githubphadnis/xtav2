@@ -1,56 +1,50 @@
-# Receipt camera capture
+# Receipt capture + OCR + line items
 
-## Flags
+## Recommendation
+
+OCR is not a product goal. Prefer **Google Vision** for raw text, then local
+Ollama (`OLLAMA_MODEL`) to structure header + `items[]`. Local vision
+(`minicpm-v`) is a privacy-only fallback.
+
+## Flags / settings
 
 | Flag / setting | Default | Role |
 |----------------|---------|------|
-| `FEATURE_RECEIPT_OCR` | `false` | Show Capture / Pending screens |
-| `FEATURE_OCR_OLLAMA_VISION` | `false` | Auto-extract via Ollama vision on lenai |
-| `FEATURE_OCR_GOOGLE_VISION` | `false` | Cloud OCR via Google Vision API |
-| `PRIVACY_LOCAL_ONLY` | `true` | Bootstrap: block cloud OCR (Settings UI can override) |
-| `GOOGLE_VISION_API_KEY` | empty | Required for Google path |
-| `OLLAMA_VISION_MODEL` | empty | e.g. `minicpm-v` / `qwen2.5vl` on lenai |
+| `FEATURE_RECEIPT_OCR` | `false` | Capture / Pending screens |
+| `FEATURE_LINE_ITEMS` | `true` | Store product lines; Ask can sum them |
+| `FEATURE_OCR_GOOGLE_VISION` | `false` | Google DOCUMENT_TEXT_DETECTION |
+| `GOOGLE_VISION_API_KEY` | empty | API key (Portainer; never commit) |
+| `PRIVACY_LOCAL_ONLY` | `true` | Blocks Google when on (Settings can override) |
+| `FEATURE_OCR_OLLAMA_VISION` | `false` | Local vision fallback |
+| `OLLAMA_VISION_MODEL` | empty | e.g. `minicpm-v` |
 
-## OCR routing
+## Pipeline
 
-1. If local vision is enabled and the model exists → Ollama vision.
-2. Else if privacy is **off**, Google flag is on, and API key is set → Google OCR text, then local chat model structures fields.
-3. Else → pending draft with empty/manual fields.
+1. If privacy is off and Google flag + key are set → Google text → Ollama structure (with `items[]`).
+2. Else if local vision enabled → Ollama vision (weaker line items).
+3. Else → manual Pending fields.
 
-**Privacy local-only** (Settings screen or env) always blocks Google, even when the feature flag is on.
-
-## Flow
-
-1. **Capture** screen: camera via `<input accept="image/*" capture="environment">`.
-2. Upload stores the image under `UPLOAD_DIR` and creates `status=pending`.
-3. **Pending** screen: confirm → `status=posted` (counts toward Ask totals).
-
-## Model quality (practical)
-
-| Provider | Receipt field accuracy (rough) | Notes |
-|----------|--------------------------------|-------|
-| LLaVA-class local | Often weak | Hallucinates totals / merchants |
-| MiniCPM-V / Qwen2.5-VL | Much better | Prefer these for local OCR |
-| Google Vision + local structure | Strongest cloud option | ~90%+ on clean receipts; sends image off-host |
-
-Default stance: **local-first**. Enable Google only when privacy is off and you accept cloud OCR.
-
-## Portainer
+## Portainer (good line-item quality)
 
 ```text
 FEATURE_RECEIPT_OCR=true
+FEATURE_LINE_ITEMS=true
+FEATURE_OCR_GOOGLE_VISION=true
+GOOGLE_VISION_API_KEY=<from wdmmgv2 / GCP>
+PRIVACY_LOCAL_ONLY=false
 FEATURE_OCR_OLLAMA_VISION=false
-OLLAMA_VISION_MODEL=              # pull minicpm-v or qwen2.5vl on lenai first
-PRIVACY_LOCAL_ONLY=true
-FEATURE_OCR_GOOGLE_VISION=false
-GOOGLE_VISION_API_KEY=            # never commit; set in Portainer secrets/env
 UPLOAD_DIR=/data/uploads
 ```
 
-Compose mounts volume `xtav2_uploads` → `/data/uploads`.
+Then in the app **Settings**: confirm privacy local-only is **off** and
+“Google Vision effective” is **yes**.
 
-## Note on lenai (Jul 2026)
+## Ask
 
-Current inventory has chat/coder/embed models but **no vision model**. Camera capture
-still works: drafts land in pending for manual confirm. Pull a vision model before
-turning `FEATURE_OCR_OLLAMA_VISION` on.
+Questions like “how much on chocolate?” use `line_matches` / `line_total` from
+`query_spend` over `expense_line_items.description`.
+
+## Schema
+
+Table `expense_line_items` is created automatically on app startup (`create_all`).
+No manual migration.

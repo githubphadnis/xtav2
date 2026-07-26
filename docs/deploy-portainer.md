@@ -16,8 +16,17 @@
 6. Host port defaults to **4280** (`XTAV2_HOST_PORT`) — `8080` is usually
    taken by monsoon/XTA on notcoolio. Point Cloudflare at that host port.
 
-Privacy can also be toggled at runtime on **Settings** (DB override). Google Vision
-needs `FEATURE_OCR_GOOGLE_VISION=true`, `GOOGLE_VISION_API_KEY`, and privacy **off**.
+Privacy can also be toggled at runtime on **Settings** (DB override). For good
+receipt line items, set:
+
+```text
+FEATURE_OCR_GOOGLE_VISION=true
+GOOGLE_VISION_API_KEY=<secret>
+PRIVACY_LOCAL_ONLY=false
+FEATURE_LINE_ITEMS=true
+```
+
+Then confirm Settings shows Google Vision effective = yes. Details: [`receipts.md`](./receipts.md).
 
 ## Hosts
 

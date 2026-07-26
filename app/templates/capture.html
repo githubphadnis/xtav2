@@ -16,9 +16,9 @@
   {% if settings.feature_ocr_ollama_vision and settings.ollama_vision_model %}
   Local vision OCR is configured ({{ settings.ollama_vision_model }}).
   {% elif google_vision_effective %}
-  Google Vision OCR is available (privacy local-only is off).
+  Google Vision OCR is active (privacy local-only is off). Line items will be extracted when possible.
   {% elif settings.feature_ocr_google_vision and privacy_local_only %}
-  Google Vision is configured but blocked by privacy local-only.
+  Google Vision is configured but blocked by privacy local-only — turn privacy off in Settings for best OCR.
   {% else %}
   OCR providers are off — fill fields manually on Pending.
   {% endif %}

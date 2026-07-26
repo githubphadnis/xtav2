@@ -7,19 +7,20 @@
 ## Current State / WIP
 
 - **Live:** https://xta.pphadnis.com/
-- Multi-screen UI + privacy toggle + optional Google Vision on `main` (pull image)
-- Camera: `FEATURE_RECEIPT_OCR=true`; vision OCR still optional
+- Line items + Google-primary OCR on `main` — pull image + set Portainer env
 - Next product: mass upload (#9)
 
 ## Broken Things
 
-- None known for core ledger/Ask
-- Auto OCR needs a vision model on lenai (`OLLAMA_VISION_MODEL` + flag) **or**
-  privacy off + Google Vision key
+- Ask matches printed product text (e.g. German `Schokolade`), not English synonyms yet
 
 ## Next Immediate Steps
 
-1. Portainer: pull latest image; keep `PRIVACY_LOCAL_ONLY=true` unless you want cloud OCR
-2. Phone test: Ledger / Add / Capture / Pending / Ask / Settings
-3. Optional: pull `minicpm-v` or `qwen2.5vl` on lenai for local OCR
+1. Portainer env (see docs/receipts.md):
+   - `FEATURE_OCR_GOOGLE_VISION=true`
+   - `GOOGLE_VISION_API_KEY=<from wdmmgv2 GCLOUD_VISION_API_KEY>`
+   - `PRIVACY_LOCAL_ONLY=false`
+   - `FEATURE_LINE_ITEMS=true`
+2. Settings: privacy off; Google Vision effective = yes
+3. Recapture receipt → confirm line items → Ask product question
 4. Start #9 mass upload

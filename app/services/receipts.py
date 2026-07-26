@@ -31,22 +31,27 @@ _IMAGE_TYPES = {
     "image/heic": ".heic",
 }
 
-_STRUCTURE_SYSTEM = """You extract expense fields from a retail receipt image or text.
+_STRUCTURE_SYSTEM = """You extract expense fields from a retail receipt image or OCR text.
 Return ONLY a JSON object with these keys:
-  amount (number, e.g. 19.32), currency (3-letter ISO, usually EUR),
-  merchant (store name string), category (one short English word),
-  spent_on (YYYY-MM-DD), note (short string or null).
+  amount (number), currency (3-letter ISO, usually EUR),
+  merchant (store name), category (one short English word),
+  spent_on (YYYY-MM-DD), note (short string or null),
+  items (array of purchased products).
+
+Each items[] entry:
+  {"description": "product name as printed", "quantity": number or null, "amount": line total}
 
 Rules:
-- amount = the final TOTAL to pay (German: SUMME, Summe EUR, Gesamtbetrag, Bar, Karte).
-  Never use PAYBACK points, Steuernummer, PLZ, or line-item prices as amount.
+- amount = final TOTAL to pay (German: SUMME, Summe EUR, Gesamtbetrag).
+  Never use PAYBACK points, Steuernummer, PLZ, or a single line as the header amount unless it is the total.
 - German decimals use comma: 19,32 → 19.32
-- spent_on = receipt date. German format DD.MM.YY or DD.MM.YYYY.
-  Example: 25.07.26 → 2026-07-25 (21st century). Never invent a year.
-- merchant = store / company name printed near the top (e.g. REWE, Edeka), not a product.
+- spent_on = receipt date. German DD.MM.YY or DD.MM.YYYY.
+  Example: 25.07.26 → 2026-07-25. Never invent a year.
+- merchant = store name near the top (REWE, Edeka), not a product.
 - category = ONE of: groceries, restaurant, fuel, pharmacy, household, other.
-  Never put product names, brands, or list syntax in category.
-- If a field is unreadable, use null. Do not hallucinate.
+- items = every purchasable product line with its price. Skip MwSt/VAT blocks,
+  PAYBACK, payment method, change, card slips, and the SUMME/total row itself.
+- If a field is unreadable, use null / []. Do not hallucinate products.
 """
 
 _CATEGORY_ALLOW = {
@@ -139,6 +144,57 @@ def _sanitize_merchant(raw: object) -> str:
     return text[:120]
 
 
+def _coerce_items(raw: object, currency: str) -> list[dict[str, object]]:
+    if not isinstance(raw, list):
+        return []
+    skip_words = (
+        "summe",
+        "total",
+        "gesamt",
+        "mwst",
+        "payback",
+        "karte",
+        "bar",
+        "gegeben",
+        "zurück",
+        "wechselgeld",
+        "steuernummer",
+    )
+    out: list[dict[str, object]] = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            continue
+        desc = str(entry.get("description") or entry.get("name") or "").strip()
+        if not desc or len(desc) < 2:
+            continue
+        if any(ch in desc for ch in "[]{}"):
+            continue
+        lowered = desc.lower()
+        if any(w in lowered for w in skip_words):
+            continue
+        try:
+            amount = Decimal(str(entry.get("amount") or entry.get("price") or "0").replace(",", "."))
+        except (InvalidOperation, ValueError):
+            continue
+        if amount <= 0:
+            continue
+        qty: Decimal | None = None
+        if entry.get("quantity") is not None:
+            try:
+                qty = Decimal(str(entry["quantity"]).replace(",", "."))
+            except (InvalidOperation, ValueError):
+                qty = None
+        out.append(
+            {
+                "description": desc[:512],
+                "quantity": qty,
+                "amount": amount,
+                "currency": currency,
+            }
+        )
+    return out[:80]
+
+
 def _coerce_extract(
     settings: Settings, raw: dict[str, object], today: date
 ) -> dict[str, object]:
@@ -156,6 +212,7 @@ def _coerce_extract(
     note = str(raw.get("note") or "").strip()
     if note.upper() in {"SUMME", "TOTAL", "GESAMTBETRAG", "NULL"}:
         note = ""
+    items = _coerce_items(raw.get("items"), currency)
     return {
         "amount": amount,
         "currency": currency or settings.base_currency.upper(),
@@ -163,6 +220,7 @@ def _coerce_extract(
         "category": _sanitize_category(raw.get("category")),
         "spent_on": _parse_spent_on(raw.get("spent_on"), today),
         "note": note[:255],
+        "items": items,
     }
 
 
@@ -226,7 +284,7 @@ async def extract_via_ollama_vision(
     user_prompt = (
         f"Today's date is {today.isoformat()}. "
         "Read the receipt image. Extract amount (SUMME/total), currency, merchant, "
-        "category, spent_on, note. Return JSON only."
+        "category, spent_on, note, and items[] product lines. Return JSON only."
     )
     payload = {
         "model": model,
@@ -306,17 +364,8 @@ async def run_ocr_pipeline(
     privacy_on: bool,
     google_ok: bool,
 ) -> tuple[dict[str, object] | None, str | None, str]:
-    """Try configured OCR providers. Returns (raw_fields, warning, provider_used)."""
-    ollama_err: str | None = None
-    if settings.ollama_vision_allowed():
-        try:
-            raw = await extract_via_ollama_vision(
-                settings, image_bytes=image_bytes, content_type=content_type
-            )
-            return raw, None, "ollama_vision"
-        except (RuntimeError, httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
-            logger.warning("Ollama vision OCR failed: %s", exc)
-            ollama_err = str(exc)
+    """Try OCR providers. Google text first when allowed; local vision fallback."""
+    errors: list[str] = []
 
     if google_ok:
         try:
@@ -327,13 +376,22 @@ async def run_ocr_pipeline(
             return raw, None, "google_vision+ollama_structure"
         except (RuntimeError, httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
             logger.warning("Google Vision OCR failed: %s", exc)
-            parts = [p for p in (ollama_err, str(exc)) if p]
-            return None, "; ".join(parts) if parts else str(exc), "none"
+            errors.append(str(exc))
+
+    if settings.ollama_vision_allowed():
+        try:
+            raw = await extract_via_ollama_vision(
+                settings, image_bytes=image_bytes, content_type=content_type
+            )
+            return raw, None, "ollama_vision"
+        except (RuntimeError, httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
+            logger.warning("Ollama vision OCR failed: %s", exc)
+            errors.append(str(exc))
 
     if settings.feature_ocr_google_vision and privacy_on:
         return None, "Google Vision blocked by privacy local-only", "none"
-    if ollama_err:
-        return None, ollama_err, "none"
+    if errors:
+        return None, "; ".join(errors), "none"
     return None, "OCR providers off — fill fields manually", "none"
 
 
@@ -357,6 +415,7 @@ async def create_pending_from_upload(
         "category": "receipt",
         "spent_on": today,
         "note": "",
+        "items": [],
     }
     privacy_on = settings_store.privacy_local_only(db, settings)
     google_ok = settings_store.google_vision_allowed(db, settings)
@@ -385,4 +444,12 @@ async def create_pending_from_upload(
         status="pending",
         receipt_path=relative,
     )
+    items = fields.get("items") or []
+    if settings.feature_line_items and isinstance(items, list) and items:
+        expense_service.replace_line_items(
+            db,
+            expense_id=row.id,
+            items=items,  # type: ignore[arg-type]
+            currency=str(fields["currency"]),
+        )
     return row, warning

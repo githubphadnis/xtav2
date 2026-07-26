@@ -5,13 +5,13 @@ from __future__ import annotations
 import logging
 import re
 from datetime import date
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from sqlalchemy import ColumnElement, Select, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.models import Expense
+from app.models import Expense, ExpenseLineItem
 
 logger = logging.getLogger("xtav2.expenses")
 
@@ -80,7 +80,7 @@ def search_tokens(q: str) -> list[str]:
 
 
 def _text_match_clause(q: str) -> ColumnElement[bool] | None:
-    """Build OR clause over merchant/category/note for phrase or tokens."""
+    """Build OR clause over merchant/category/note/line descriptions."""
     raw = (q or "").strip()
     if not raw:
         return None
@@ -93,9 +93,117 @@ def _text_match_clause(q: str) -> ColumnElement[bool] | None:
                 Expense.merchant.ilike(needle),
                 Expense.category.ilike(needle),
                 Expense.note.ilike(needle),
+                Expense.id.in_(
+                    select(ExpenseLineItem.expense_id).where(
+                        ExpenseLineItem.description.ilike(needle)
+                    )
+                ),
             )
         )
     return or_(*clauses) if clauses else None
+
+
+def replace_line_items(
+    db: Session,
+    *,
+    expense_id: int,
+    items: list[dict[str, object]],
+    currency: str,
+) -> list[ExpenseLineItem]:
+    """Replace all line items for an expense (empty list clears)."""
+    existing = list(
+        db.scalars(
+            select(ExpenseLineItem).where(ExpenseLineItem.expense_id == expense_id)
+        ).all()
+    )
+    for row in existing:
+        db.delete(row)
+    db.flush()
+
+    currency_norm = currency.strip().upper()[:3] or "EUR"
+    created: list[ExpenseLineItem] = []
+    for idx, raw in enumerate(items):
+        desc = str(raw.get("description") or "").strip()
+        if not desc:
+            continue
+        try:
+            amount = Decimal(str(raw.get("amount") or "0").replace(",", ".")).quantize(
+                _MONEY_QUANT, rounding=ROUND_HALF_UP
+            )
+        except (InvalidOperation, ValueError):
+            amount = Decimal("0.00")
+        qty: Decimal | None = None
+        if raw.get("quantity") is not None and str(raw.get("quantity")).strip() != "":
+            try:
+                qty = Decimal(str(raw["quantity"]).replace(",", "."))
+            except (InvalidOperation, ValueError):
+                qty = None
+        row = ExpenseLineItem(
+            expense_id=expense_id,
+            description=desc[:512],
+            quantity=qty,
+            amount=amount,
+            currency=currency_norm,
+            position=idx,
+        )
+        db.add(row)
+        created.append(row)
+    db.commit()
+    for row in created:
+        db.refresh(row)
+    return created
+
+
+def list_line_items(db: Session, *, expense_id: int) -> list[ExpenseLineItem]:
+    return list(
+        db.scalars(
+            select(ExpenseLineItem)
+            .where(ExpenseLineItem.expense_id == expense_id)
+            .order_by(ExpenseLineItem.position, ExpenseLineItem.id)
+        ).all()
+    )
+
+
+def query_line_matches(
+    db: Session,
+    *,
+    q: str | None,
+    start: date | None = None,
+    end: date | None = None,
+) -> list[dict[str, object]]:
+    """Return posted line items matching q tokens (for Ask grounding)."""
+    if not (q or "").strip():
+        return []
+    tokens = search_tokens(q or "")
+    if not tokens:
+        return []
+    stmt = (
+        select(ExpenseLineItem, Expense)
+        .join(Expense, Expense.id == ExpenseLineItem.expense_id)
+        .where(Expense.status == "posted")
+    )
+    if start:
+        stmt = stmt.where(Expense.spent_on >= start)
+    if end:
+        stmt = stmt.where(Expense.spent_on <= end)
+    desc_clauses = [ExpenseLineItem.description.ilike(f"%{t}%") for t in tokens]
+    stmt = stmt.where(or_(*desc_clauses)).order_by(Expense.spent_on.desc()).limit(50)
+    rows = db.execute(stmt).all()
+    out: list[dict[str, object]] = []
+    for item, exp in rows:
+        out.append(
+            {
+                "expense_id": exp.id,
+                "spent_on": exp.spent_on.isoformat(),
+                "merchant": exp.merchant,
+                "description": item.description,
+                "amount": float(
+                    Decimal(str(item.amount)).quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
+                ),
+                "currency": item.currency,
+            }
+        )
+    return out
 
 
 def add_expense(
@@ -253,6 +361,19 @@ def query_spend(
     if text_clause is not None:
         stmt = stmt.where(text_clause)
     total, count = db.execute(stmt).one()
+    line_matches: list[dict[str, object]] = []
+    line_total = 0.0
+    if q and settings.feature_line_items:
+        line_matches = query_line_matches(db, q=q, start=start, end=end)
+        line_total = float(
+            sum(
+                (
+                    Decimal(str(m["amount"])).quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
+                    for m in line_matches
+                ),
+                Decimal("0.00"),
+            )
+        )
     return {
         "total": float(
             Decimal(str(total or 0)).quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
@@ -263,4 +384,7 @@ def query_spend(
         "end": end.isoformat() if end else None,
         "q": q,
         "tokens": search_tokens(q) if q else [],
+        "line_matches": line_matches,
+        "line_total": line_total,
+        "line_match_count": len(line_matches),
     }

@@ -10,6 +10,9 @@ from pathlib import Path
 os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
 os.environ["FEATURE_RECEIPT_OCR"] = "true"
 os.environ["FEATURE_OCR_OLLAMA_VISION"] = "false"
+os.environ["FEATURE_OCR_GOOGLE_VISION"] = "false"
+os.environ["PRIVACY_LOCAL_ONLY"] = "true"
+os.environ["GOOGLE_VISION_API_KEY"] = ""
 os.environ["UPLOAD_DIR"] = "uploads-test"
 
 from app.config import get_settings
@@ -21,6 +24,9 @@ get_settings.cache_clear()
 
 
 def setup_function() -> None:
+    os.environ["FEATURE_OCR_GOOGLE_VISION"] = "false"
+    os.environ["PRIVACY_LOCAL_ONLY"] = "true"
+    os.environ["GOOGLE_VISION_API_KEY"] = ""
     get_settings.cache_clear()
     from app import db as db_mod
 
@@ -112,6 +118,11 @@ def test_coerce_sanitizes_bad_vision_fields() -> None:
             "category": "['HERZ ASSASSIN",
             "spent_on": "2016-08-30",
             "note": "SUMME",
+            "items": [
+                {"description": "Schokolade", "amount": "1,29"},
+                {"description": "SUMME", "amount": "19,32"},
+                {"description": "['JUNK", "amount": "1.00"},
+            ],
         },
         today,
     )
@@ -120,6 +131,8 @@ def test_coerce_sanitizes_bad_vision_fields() -> None:
     assert out["spent_on"] == today  # absurd year → today
     assert out["note"] == ""
     assert out["merchant"] == "REWE"
+    assert len(out["items"]) == 1
+    assert out["items"][0]["description"] == "Schokolade"
 
     de = _coerce_extract(
         settings,
@@ -128,3 +141,36 @@ def test_coerce_sanitizes_bad_vision_fields() -> None:
     )
     assert de["spent_on"] == date(2026, 7, 25)
     assert de["category"] == "groceries"
+
+
+def test_line_items_and_ask_query() -> None:
+    os.environ["FEATURE_LINE_ITEMS"] = "true"
+    get_settings.cache_clear()
+    settings = get_settings()
+    SessionLocal = get_session_factory()
+    with SessionLocal() as db:
+        row = expense_service.add_expense(
+            db,
+            settings=settings,
+            spent_on=date(2026, 7, 25),
+            amount=Decimal("19.32"),
+            currency="EUR",
+            merchant="REWE",
+            category="groceries",
+            status="posted",
+        )
+        expense_service.replace_line_items(
+            db,
+            expense_id=row.id,
+            items=[
+                {"description": "Schokolade Zartbitter", "amount": "1.29"},
+                {"description": "Milch", "amount": "1.19"},
+            ],
+            currency="EUR",
+        )
+        result = expense_service.query_spend(
+            db, settings=settings, q="How much on Schokolade?"
+        )
+        assert result["line_match_count"] == 1
+        assert result["line_total"] == 1.29
+        assert "Schokolade" in result["line_matches"][0]["description"]

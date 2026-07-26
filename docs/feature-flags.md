@@ -16,7 +16,7 @@ Every module is gated by an environment variable. Flags are booleans parsed from
 | `PRIVACY_LOCAL_ONLY` | `true` | Bootstrap privacy; Settings UI can override at runtime |
 | `FEATURE_BANK_IMPORT` | `false` | CSV/Excel/PDF bank statements |
 | `FEATURE_EMAIL_INGEST` | `false` | Email → expense pipeline |
-| `FEATURE_LINE_ITEMS` | `false` | Per-SKU line items on receipts |
+| `FEATURE_LINE_ITEMS` | `true` | Per-SKU line items on receipts + Ask product totals |
 | `FEATURE_SAVINGS_INSIGHTS` | `false` | Pattern / savings suggestions |
 | `FEATURE_TRENDS_UI` | `false` | Historical charts |
 | `FEATURE_GEO` | `false` | Geospatial spend map |

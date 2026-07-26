@@ -43,6 +43,7 @@
 | #8 | Camera capture |
 | #11 | Privacy toggle + Google Vision optional |
 | #12 | Multi-screen UI + mobile visual polish |
+| #13 | Line items + Google-primary OCR |
 
 ### Milestones
 

@@ -51,13 +51,21 @@ def _page_context(
     pending = (
         expense_service.list_pending(db, limit=20) if settings.feature_receipt_ocr else []
     )
+    line_items_by_expense: dict[int, list] = {}
+    if settings.feature_line_items:
+        for e in pending:
+            line_items_by_expense[e.id] = expense_service.list_line_items(
+                db, expense_id=e.id
+            )
     ctx: dict[str, object] = {
         "request": request,
         "active": active,
         "pending_count": len(pending),
         "pending": pending,
+        "line_items_by_expense": line_items_by_expense,
         "privacy_local_only": privacy,
         "google_vision_effective": settings_store.google_vision_allowed(db, settings),
+        "google_key_configured": bool(settings.google_vision_api_key.strip()),
         "settings": settings,
         "flags": flag_snapshot(settings, db),
         "today": today_iso(settings),
@@ -344,6 +352,8 @@ def confirm_pending(
     merchant: str = Form(""),
     category: str = Form(""),
     note: str = Form(""),
+    item_description: list[str] = Form(default=[]),
+    item_amount: list[str] = Form(default=[]),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> RedirectResponse:
@@ -371,6 +381,17 @@ def confirm_pending(
     )
     if updated is None:
         raise HTTPException(status_code=404, detail="Expense not found")
+
+    if settings.feature_line_items:
+        items: list[dict[str, object]] = []
+        for desc, amt in zip(item_description, item_amount, strict=False):
+            d = (desc or "").strip()
+            if not d:
+                continue
+            items.append({"description": d, "amount": amt or "0"})
+        expense_service.replace_line_items(
+            db, expense_id=expense_id, items=items, currency=currency
+        )
     return RedirectResponse(url="/pending", status_code=303)
 
 
@@ -387,7 +408,9 @@ async def ask(
     aggregate = expense_service.query_spend(db, settings=settings, q=question)
     system = (
         "You are xtav2, a concise expense assistant. Answer only from the provided "
-        "aggregate JSON. If data is insufficient, say so. Prefer numbers and short sentences."
+        "aggregate JSON. Prefer line_matches / line_total when the question is about a "
+        "product (e.g. chocolate). If data is insufficient, say so. Prefer numbers and "
+        "short sentences."
     )
     prompt = f"User question: {question}\nAggregate JSON: {aggregate}\nAnswer:"
     try:
