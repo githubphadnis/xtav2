@@ -124,6 +124,9 @@ when a project gains users or collaborators. See `AGENTS.md` for tier definition
       checks reachability **and** configured resource existence (e.g. model name from
       `ollama list` / `/api/tags`). A successful ping/DNS check is not enough. Fail with
       an actionable message (what is wrong + how to fix).
+      **Never default `OLLAMA_MODEL` (or similar) to a name not verified on the target
+      host inventory**; prefer a known-good from that environment's docs, or fail
+      `/health/*` as misconfigured until set.
     - **Natural-language → data:** Never use the raw user sentence as a single `ILIKE`
       / equality filter. Extract entities/tokens (or structured parse), write a **failing
       test with the exact user phrase first**, then implement. Example:  

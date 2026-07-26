@@ -6,22 +6,20 @@
 
 ## Current State / WIP
 
-- New repo bootstrapped under cOcO **Governed** at `C:\projects\xtav2`
-- V1 skeleton: FastAPI mobile UI, Postgres, feature flags, expense services,
-  Ollama ask path, MCP server module, Portainer compose, CI/GHCR workflows
-- Classic XTA left untouched at `C:\projects\xta`
+- Live on notcoolio `:4280` — manual add + list working; Ask tokenizes REWE correctly
+- Ollama was 404 on `llama3.2` — set Portainer `OLLAMA_MODEL=qwen2.5:14b` (new image default)
+- Delete expense shipping in next image; camera + mass upload tracked #8 #9 (flags off)
 
 ## Broken Things
 
-- Not yet deployed to notcoolio / Cloudflare
-- FX conversion for foreign currencies is stubbed (same-currency only)
-- Ollama Q&A uses text filter + aggregate JSON (not full text-to-SQL yet)
-- GitHub Project (Golden Board) not created yet — issue #5 tracks it
+- Ask fails until Portainer `OLLAMA_MODEL` matches lenai inventory
+- Cloudflare tunnel / Access may still be pending (#4)
+- Golden Board (#5) not wired
+- Docker image smoke (#6) not implemented yet
 
 ## Next Immediate Steps
 
-1. Confirm Actions CI/GHCR on https://github.com/githubphadnis/xtav2
-2. Portainer stack on notcoolio with `OLLAMA_BASE_URL=http://lenai:11434`
-3. Cloudflare tunnel hostname + Access
-4. Create Golden Board and triage V1.0 issues #1–#5
-5. Daily-drive manual logging before enabling OCR flags
+1. Portainer: set `OLLAMA_MODEL=qwen2.5:14b`, pull/redeploy `ghcr.io/githubphadnis/xtav2:main`
+2. Verify `/health/ollama` → status ok; retry Ask
+3. Confirm Delete on recent rows
+4. Plan #8 camera + #9 mass upload behind flags

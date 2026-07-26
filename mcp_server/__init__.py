@@ -80,6 +80,17 @@ def add_expense(
 
 
 @mcp.tool()
+def delete_expense(expense_id: int) -> dict[str, Any]:
+    """Delete an expense by id. Returns whether a row was removed."""
+    _ensure_ready()
+    if not require_flag("FEATURE_MANUAL_ENTRY", settings):
+        raise RuntimeError("FEATURE_MANUAL_ENTRY is disabled")
+    with get_session_factory()() as db:
+        deleted = expense_service.delete_expense(db, expense_id=expense_id)
+        return {"id": expense_id, "deleted": deleted}
+
+
+@mcp.tool()
 def list_expenses(limit: int = 20, q: str | None = None) -> list[dict[str, Any]]:
     """List recent expenses, optionally filtered by free-text q."""
     _ensure_ready()

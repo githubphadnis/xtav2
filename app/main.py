@@ -146,6 +146,20 @@ def create_expense(
     return RedirectResponse(url="/", status_code=303)
 
 
+@app.post("/expenses/{expense_id}/delete")
+def remove_expense(
+    expense_id: int,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> RedirectResponse:
+    if not require_flag("FEATURE_MANUAL_ENTRY", settings):
+        raise HTTPException(status_code=404, detail="Manual entry disabled")
+    deleted = expense_service.delete_expense(db, expense_id=expense_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    return RedirectResponse(url="/", status_code=303)
+
+
 @app.post("/ask", response_class=HTMLResponse)
 async def ask(
     request: Request,

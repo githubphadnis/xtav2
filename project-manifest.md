@@ -30,18 +30,19 @@ home lab: GitHub → GHCR → Portainer (`notcoolio`) → Cloudflare.
 
 **Included (flags ON by default):**
 
-- Manual expense entry (amount, currency, merchant, category, date, note)
+- Manual expense entry **and delete** (amount, currency, merchant, category, date, note)
 - Expense list + filter (mobile-first UI)
 - Multi-currency: store original amount/currency + base-currency amount
-- Natural-language spend Q&A via Ollama (`lenai`)
-- **MCP server** (add / list / query spend tools) — same domain API as the UI
+- Natural-language spend Q&A via Ollama (`lenai`) — model must exist on host
+- **MCP server** (add / list / query / delete spend tools) — same domain API as the UI
 - Feature-flag registry for every module
 - Docker image → GHCR → Portainer compose → Cloudflare tunnel path
 - Health endpoints + structured logging
 
 **Explicitly excluded (deferred; flags OFF until ready):**
 
-- Receipt OCR / vision ingest — V1.1 (`FEATURE_RECEIPT_OCR`)
+- Receipt OCR / **camera** ingest — V1.1 (`FEATURE_RECEIPT_OCR`)
+- **Mass upload / directory bootstrap** — V1.1 (`FEATURE_MASS_UPLOAD`)
 - Google Vision provider — V1.1 optional (`FEATURE_OCR_GOOGLE_VISION`)
 - Bank statement CSV/PDF import — V1.1 (`FEATURE_BANK_IMPORT`)
 - Email ingest — V1.2 (`FEATURE_EMAIL_INGEST`)

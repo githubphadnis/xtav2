@@ -8,6 +8,7 @@ agents) can use the **same domain services** as the web UI.
 | Tool | Purpose |
 |------|---------|
 | `add_expense` | Create a manual expense |
+| `delete_expense` | Delete an expense by id |
 | `list_expenses` | List / filter recent expenses |
 | `query_spend` | Aggregate spend for a natural or structured query window |
 | `list_feature_flags` | Show which modules are enabled |

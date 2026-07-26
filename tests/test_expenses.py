@@ -73,3 +73,20 @@ def test_add_and_query_spend() -> None:
 def test_format_money() -> None:
     assert expense_service.format_money(Decimal("200.0000")) == "200.00"
     assert expense_service.format_money("3.5") == "3.50"
+
+
+def test_delete_expense() -> None:
+    settings = get_settings()
+    SessionLocal = get_session_factory()
+    with SessionLocal() as db:
+        row = expense_service.add_expense(
+            db,
+            settings=settings,
+            spent_on=date(2026, 7, 3),
+            amount=Decimal("9.99"),
+            currency="EUR",
+            merchant="Test",
+        )
+        assert expense_service.delete_expense(db, expense_id=row.id) is True
+        assert expense_service.delete_expense(db, expense_id=row.id) is False
+        assert expense_service.list_expenses(db) == []

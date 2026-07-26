@@ -6,30 +6,42 @@
 
 ### Themes
 
-- Mobile-first manual capture
+- Mobile-first manual capture (add + **delete**)
 - Multi-currency base conversion
-- Ollama Q&A over real rows
+- Ollama Q&A over real rows (model must exist on lenai)
 - MCP tools for Cursor / agents
 - Feature-flag skeleton for all future inputs
 
 ### Included
 
-- Manual CRUD + list/filter
+- Manual CRUD (create, list, **delete**) + filter
 - Postgres store
-- Ollama on `lenai`
+- Ollama on `lenai` (`OLLAMA_MODEL` from live inventory)
 - MCP server process (or sidecar)
 - GHCR + Portainer + Cloudflare path
 
-### Explicitly Excluded
+### Explicitly Excluded (this milestone)
 
-- OCR, bank import, email, savings engine, charts — see manifest
+- Camera / receipt OCR — V1.1
+- Mass directory upload — V1.1
+- Bank import, email, savings, charts — later
+
+### Open issues (board)
+
+| Issue | Theme |
+|-------|--------|
+| [#6](https://github.com/githubphadnis/xtav2/issues/6) | CI image smoke (Postgres + health) |
+| [#7](https://github.com/githubphadnis/xtav2/issues/7) | Delete expense in UI/MCP |
+| [#8](https://github.com/githubphadnis/xtav2/issues/8) | Camera capture (receipt OCR path) |
+| [#9](https://github.com/githubphadnis/xtav2/issues/9) | Mass upload from directory (init ingest) |
+| [#10](https://github.com/githubphadnis/xtav2/issues/10) | Align default `OLLAMA_MODEL` with lenai |
 
 ### Milestones
 
 | Milestone | Goal |
 |-----------|------|
-| V1.0 | Live on notcoolio; daily manual logging + ask + MCP |
-| V1.1 | Receipt OCR (Ollama vision) + bank CSV; Google Vision optional flag |
+| V1.0 | Live on notcoolio; daily manual logging + delete + ask + MCP |
+| V1.1 | Camera capture + mass upload (flagged) + bank CSV; Google Vision optional |
 | V1.2 | Email ingest + line items + savings insights |
 | V2.0 | Trends UI, geo, public docs site polish |
 
@@ -37,7 +49,8 @@
 
 ## V1.1 — Inputs
 
-- Receipt photo → structured expense (Ollama vision first)
+- **Camera capture** on mobile (`FEATURE_RECEIPT_OCR` + vision provider)
+- **Mass upload / directory ingest** for bootstrap (`FEATURE_MASS_UPLOAD`)
 - Optional Google Vision flag
 - Bank CSV/Excel import with column mapping assist
 

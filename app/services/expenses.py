@@ -149,6 +149,16 @@ def add_expense(
     return row
 
 
+def delete_expense(db: Session, *, expense_id: int) -> bool:
+    """Delete an expense by id. Returns True if a row was removed."""
+    row = db.get(Expense, expense_id)
+    if row is None:
+        return False
+    db.delete(row)
+    db.commit()
+    return True
+
+
 def list_expenses(
     db: Session,
     *,

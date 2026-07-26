@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://xtav2:xtav2@postgres:5432/xtav2"
 
     ollama_base_url: str = "http://lenai:11434"
-    ollama_model: str = "llama3.2"
+    ollama_model: str = "qwen2.5:14b"
     ollama_timeout_seconds: int = 60
 
     feature_manual_entry: bool = True
@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     feature_ollama_qa: bool = True
     feature_mcp: bool = True
     feature_receipt_ocr: bool = False
+    feature_mass_upload: bool = False
     feature_ocr_ollama_vision: bool = False
     feature_ocr_google_vision: bool = False
     feature_bank_import: bool = False
@@ -51,6 +52,7 @@ class Settings(BaseSettings):
         "feature_ollama_qa",
         "feature_mcp",
         "feature_receipt_ocr",
+        "feature_mass_upload",
         "feature_ocr_ollama_vision",
         "feature_ocr_google_vision",
         "feature_bank_import",
