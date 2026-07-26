@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to xtav2 are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
@@ -7,6 +7,7 @@ versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- cOcO Rule 15 (Production-Path Parity) and Rule 16 (Rule Promotion) synced from scaffolding.
 
 - Initial cOcO Governed scaffold and XTAv2 V1 skeleton.
 - Manual expense entry (mobile-first UI) behind `FEATURE_MANUAL_ENTRY`.

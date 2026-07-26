@@ -112,3 +112,41 @@ when a project gains users or collaborators. See `AGENTS.md` for tier definition
     - **Committing is a human decision.** Do not leave a session with a stale board, but do
       not commit/push on the human's behalf unless explicitly instructed. When instructed,
       use Conventional Commits referencing issue numbers (see `CODING_GUIDELINES.md`).
+
+15. **Production-Path Parity — "Test what ships"** *[Core]*
+    Happy-path unit tests on a toy stack are not enough. Before claiming a feature done
+    (and before Portainer / users see it), prove the **same path production will take**.
+
+    - **Driver / URL parity:** If prod uses Postgres (`postgresql://…`), CI must exercise
+      that dialect (or normalize + assert the driver), not only SQLite-in-memory. Never
+      ship a DB URL shape you have not imported against.
+    - **External systems:** For Ollama, OCR, mail, banks, etc.: add a health/probe that
+      checks reachability **and** configured resource existence (e.g. model name from
+      `ollama list` / `/api/tags`). A successful ping/DNS check is not enough. Fail with
+      an actionable message (what is wrong + how to fix).
+    - **Natural-language → data:** Never use the raw user sentence as a single `ILIKE`
+      / equality filter. Extract entities/tokens (or structured parse), write a **failing
+      test with the exact user phrase first**, then implement. Example:  
+      `"How much did I spend at REWE this year?"` must match merchant `REWE`.
+    - **Display vs storage:** Money, rates, and quantities must have an explicit display
+      format (e.g. 2 decimal places). Do not dump raw `Numeric` / float strings into UI.
+    - **Image smoke (Governed / Docker deploys):** After build, smoke the container with
+      prod-like env (`DATABASE_URL`, `OLLAMA_*`) at least far enough to import the app and
+      hit `/health/*` — not only `pytest` on the runner filesystem.
+    - **Definition of done:** For user-facing flows, DoD includes one real mobile/UI
+      phrase or curl against the deployed contract, not only green unit tests.
+
+16. **Rule Promotion — "Patterns become rules"** *[Core]*
+    When the same class of mistake appears in production, review, or a session (or is
+    clearly generalizable beyond one line of code), **do not stop at the fix**.
+
+    - Open or update a tracked issue that names the **pattern** (not only the symptom).
+    - Encode the prevention into the cOcO standard: prefer
+      `scaffolding/agent_rules.md` (or `CODING_GUIDELINES.md` for style) so **new**
+      projects inherit it; sync into the active project's `agent_rules.md`.
+    - If the pattern should bind every Cursor chat (cross-repo), also update the
+      matching **user rule** (Cursor Settings → Rules) or ask the human to confirm.
+    - Log the promotion in `dev-docs.md` (decision + date) and mention it in
+      `BREADCRUMBS.md` for the session.
+    - Goal: each repeated failure makes the system stricter once, so the next agent
+      (and future you) cannot silently repeat it.
