@@ -16,13 +16,23 @@ class Base(DeclarativeBase):
     """SQLAlchemy declarative base."""
 
 
+def normalize_database_url(url: str) -> str:
+    """Use psycopg v3 (psycopg[binary]); plain postgresql:// defaults to psycopg2."""
+    if url.startswith("postgresql://"):
+        return "postgresql+psycopg://" + url.removeprefix("postgresql://")
+    if url.startswith("postgres://"):
+        return "postgresql+psycopg://" + url.removeprefix("postgres://")
+    return url
+
+
 @lru_cache
 def get_engine() -> Engine:
     settings = get_settings()
+    url = normalize_database_url(settings.database_url)
     connect_args: dict[str, object] = {}
-    if settings.database_url.startswith("sqlite"):
+    if url.startswith("sqlite"):
         connect_args["check_same_thread"] = False
-    return create_engine(settings.database_url, pool_pre_ping=True, connect_args=connect_args)
+    return create_engine(url, pool_pre_ping=True, connect_args=connect_args)
 
 
 @lru_cache
