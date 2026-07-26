@@ -37,8 +37,9 @@ See `docs/feature-flags.md`, `docs/mcp.md`, `docs/deploy-portainer.md`.
 ## Deployment Steps
 
 1. Push to `main` → GitHub Actions builds `ghcr.io/githubphadnis/xtav2:main`
-2. Portainer stack uses `docker-compose.portainer.yml`
-3. Cloudflare Access / tunnel fronts the app (identity tagging later)
+2. **Smoke job** runs the image against Postgres and hits `/health/*`
+3. Portainer stack uses `docker-compose.portainer.yml`
+4. Cloudflare Access / tunnel fronts the app — live: https://xta.pphadnis.com/
 
 ## Project Structure
 

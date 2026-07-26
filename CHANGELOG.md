@@ -10,6 +10,7 @@ versioning: [Semantic Versioning](https://semver.org/).
 - cOcO Rule 15 (Production-Path Parity) and Rule 16 (Rule Promotion) synced from scaffolding.
 - Expense delete in UI + MCP (`delete_expense`); default Ollama model `qwen2.5:14b`.
 - Feature flag `FEATURE_MASS_UPLOAD` (off) for directory/multi-file bootstrap.
+- Docker Publish **smoke** job: run image + Postgres, hit `/health/live|db|flags|ollama`.
 
 - Initial cOcO Governed scaffold and XTAv2 V1 skeleton.
 - Manual expense entry (mobile-first UI) behind `FEATURE_MANUAL_ENTRY`.

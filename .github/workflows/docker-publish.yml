@@ -32,6 +32,15 @@ jobs:
           DATABASE_URL: "sqlite+pysqlite:///:memory:"
         run: pytest tests/ -q
 
+      - name: Assert Postgres URL normalizes to psycopg3
+        run: |
+          python - <<'PY'
+          from app.db import normalize_database_url
+          url = "postgresql://xtav2:xtav2@postgres:5432/xtav2"
+          assert normalize_database_url(url) == "postgresql+psycopg://xtav2:xtav2@postgres:5432/xtav2"
+          print("ok", normalize_database_url(url))
+          PY
+
   build-and-push:
     needs: test
     runs-on: ubuntu-latest
@@ -65,3 +74,56 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  smoke:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image
+        run: docker pull ${{ env.IMAGE_NAME }}:main
+
+      - name: Start Postgres + app and smoke health endpoints
+        run: |
+          set -euo pipefail
+          docker network create xtav2-smoke
+          docker run -d --name xtav2-smoke-pg --network xtav2-smoke \
+            -e POSTGRES_USER=xtav2 \
+            -e POSTGRES_PASSWORD=xtav2 \
+            -e POSTGRES_DB=xtav2 \
+            postgres:16-alpine
+          for i in $(seq 1 30); do
+            if docker exec xtav2-smoke-pg pg_isready -U xtav2 -d xtav2; then
+              break
+            fi
+            sleep 1
+          done
+          docker run -d --name xtav2-smoke-app --network xtav2-smoke -p 18080:8080 \
+            -e DATABASE_URL=postgresql://xtav2:xtav2@xtav2-smoke-pg:5432/xtav2 \
+            -e OLLAMA_BASE_URL=http://127.0.0.1:9 \
+            -e OLLAMA_MODEL=qwen2.5:14b \
+            -e FEATURE_OLLAMA_QA=true \
+            ${{ env.IMAGE_NAME }}:main
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:18080/health/live >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          chmod +x scripts/smoke.sh
+          ./scripts/smoke.sh http://127.0.0.1:18080
+          docker logs xtav2-smoke-app | tail -n 80
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f xtav2-smoke-app xtav2-smoke-pg || true
+          docker network rm xtav2-smoke || true

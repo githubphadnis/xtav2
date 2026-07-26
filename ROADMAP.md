@@ -30,11 +30,18 @@
 
 | Issue | Theme |
 |-------|--------|
-| [#6](https://github.com/githubphadnis/xtav2/issues/6) | CI image smoke (Postgres + health) |
-| [#7](https://github.com/githubphadnis/xtav2/issues/7) | Delete expense in UI/MCP |
+| [#6](https://github.com/githubphadnis/xtav2/issues/6) | CI image smoke (Postgres + health) — in progress |
 | [#8](https://github.com/githubphadnis/xtav2/issues/8) | Camera capture (receipt OCR path) |
 | [#9](https://github.com/githubphadnis/xtav2/issues/9) | Mass upload from directory (init ingest) |
-| [#10](https://github.com/githubphadnis/xtav2/issues/10) | Align default `OLLAMA_MODEL` with lenai |
+
+### Closed (V1.0 ops / core)
+
+| Issue | Theme |
+|-------|--------|
+| #1–#3 | CRUD, Ask, MCP |
+| #4 | Portainer + Cloudflare (`https://xta.pphadnis.com/`) |
+| #5 | Golden Board (deferred OK) |
+| #7 / #10 | Delete + Ollama model default |
 
 ### Milestones
 

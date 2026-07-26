@@ -6,20 +6,17 @@
 
 ## Current State / WIP
 
-- Live on notcoolio `:4280` — manual add + list working; Ask tokenizes REWE correctly
-- Ollama was 404 on `llama3.2` — set Portainer `OLLAMA_MODEL=qwen2.5:14b` (new image default)
-- Delete expense shipping in next image; camera + mass upload tracked #8 #9 (flags off)
+- **Live:** https://xta.pphadnis.com/ (Cloudflare tunnel + Portainer on notcoolio)
+- Ollama model configured on Portainer; Ask + manual CRUD + delete in use
+- Next: CI image smoke (#6), then camera (#8) / mass upload (#9)
 
 ## Broken Things
 
-- Ask fails until Portainer `OLLAMA_MODEL` matches lenai inventory
-- Cloudflare tunnel / Access may still be pending (#4)
-- Golden Board (#5) not wired
-- Docker image smoke (#6) not implemented yet
+- CI image smoke not yet on `main` until this session's push lands
+- Camera / mass upload still flagged off
 
 ## Next Immediate Steps
 
-1. Portainer: set `OLLAMA_MODEL=qwen2.5:14b`, pull/redeploy `ghcr.io/githubphadnis/xtav2:main`
-2. Verify `/health/ollama` → status ok; retry Ask
-3. Confirm Delete on recent rows
-4. Plan #8 camera + #9 mass upload behind flags
+1. Land Docker Publish `smoke` job (#6) and confirm Actions green
+2. Start `#8` camera capture behind `FEATURE_RECEIPT_OCR`
+3. Then `#9` mass upload behind `FEATURE_MASS_UPLOAD`
