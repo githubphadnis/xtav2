@@ -236,3 +236,28 @@ def format_delta(delta: Decimal, currency: str) -> str:
     """Human delta string with sign."""
     sign = "+" if delta > 0 else ""
     return f"{sign}{format_money(delta)} {currency}"
+
+
+def key_message(pulse: InsightsPulse) -> str:
+    """One-line MoM comparator for the Insights hero."""
+    cur = pulse.currency
+    if pulse.this_month.total == 0 and pulse.last_month.total == 0:
+        return "No posted spend in either window yet."
+    if pulse.delta > 0:
+        return (
+            f"You spent {format_money(pulse.delta)} {cur} more this month "
+            f"than the same days last month."
+        )
+    if pulse.delta < 0:
+        return (
+            f"You spent {format_money(abs(pulse.delta))} {cur} less this month "
+            f"than the same days last month."
+        )
+    return "Spend matches the same days last month."
+
+
+def bar_share(total: Decimal, ceiling: Decimal) -> float:
+    """Width % for bar charts relative to the largest sibling (not grand total)."""
+    if ceiling <= 0:
+        return 0.0
+    return round(float(total / ceiling * 100), 1)

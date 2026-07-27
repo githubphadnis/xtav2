@@ -2,40 +2,59 @@
 {% block title %}Insights · xtav2{% endblock %}
 {% block content %}
 <h1 class="page-title">Insights</h1>
-<p class="page-lead">
-  This month vs last · totals in {{ pulse.currency }}.
-  Tap a slice for the ledger or Ask.
-</p>
+<p class="page-lead">This month vs last · totals in {{ pulse.currency }}.</p>
+
+<section class="insight-hero" aria-label="Key message">
+  <p class="insight-key {% if pulse.delta > 0 %}is-up{% elif pulse.delta < 0 %}is-down{% endif %}">
+    {{ key_message }}
+  </p>
+  <div class="insight-actions">
+    <a class="btn btn-primary btn-inline" href="/?start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">Ledger</a>
+    {% if settings.feature_ollama_qa %}
+    <a class="btn btn-ghost btn-inline" href="/ask?q={{ 'How much did I spend this month?'|urlencode }}">Ask</a>
+    {% endif %}
+  </div>
+</section>
 
 <section class="insight-pulse" aria-label="Month over month">
-  <div class="pulse-grid">
-    <div class="pulse-card">
-      <p class="pulse-label">{{ pulse.this_month.label }}</p>
-      <p class="pulse-amt">{{ format_money(pulse.this_month.total) }}</p>
-      <p class="item-meta">{{ pulse.this_month.count }} expenses · MTD</p>
-      <p class="insight-links">
-        <a href="/?start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">Ledger</a>
-        ·
-        <a href="/ask?q={{ 'How much did I spend this month?'|urlencode }}">Ask</a>
-      </p>
+  <h2 class="insight-h">Month over month</h2>
+  <div class="mom-chart" role="img" aria-label="Spend comparison bars">
+    <div class="mom-row">
+      <span class="mom-label">{{ pulse.this_month.label }}</span>
+      <span class="mom-track">
+        <span class="mom-fill mom-fill-now" style="width: {{ bar_share(pulse.this_month.total, mom_ceiling) }}%"></span>
+      </span>
+      <span class="mom-amt">{{ format_money(pulse.this_month.total) }}</span>
     </div>
-    <div class="pulse-card">
-      <p class="pulse-label">{{ pulse.last_month.label }}</p>
-      <p class="pulse-amt pulse-amt-muted">{{ format_money(pulse.last_month.total) }}</p>
-      <p class="item-meta">{{ pulse.last_month.count }} expenses · same days</p>
-      <p class="insight-links">
-        <a href="/?start={{ pulse.last_month.start }}&amp;end={{ pulse.last_month.end }}">Ledger</a>
-      </p>
+    <div class="mom-row">
+      <span class="mom-label">{{ pulse.last_month.label }}</span>
+      <span class="mom-track">
+        <span class="mom-fill mom-fill-prev" style="width: {{ bar_share(pulse.last_month.total, mom_ceiling) }}%"></span>
+      </span>
+      <span class="mom-amt">{{ format_money(pulse.last_month.total) }}</span>
     </div>
   </div>
-  <p class="pulse-delta {% if pulse.delta > 0 %}is-up{% elif pulse.delta < 0 %}is-down{% endif %}">
-    {{ format_delta(pulse.delta, pulse.currency) }}
-    {% if pulse.delta_pct is not none %}
-      ({{ pulse.delta_pct_label }} vs last month)
-    {% elif pulse.this_month.total > 0 %}
-      (no spend last month)
-    {% endif %}
-  </p>
+  <div class="pulse-grid">
+    <div class="pulse-card">
+      <p class="pulse-label">{{ pulse.this_month.label }} · MTD</p>
+      <p class="pulse-amt">{{ format_money(pulse.this_month.total) }} <span class="pulse-ccy">{{ pulse.currency }}</span></p>
+      <p class="item-meta">{{ pulse.this_month.count }} expenses</p>
+      <div class="insight-actions insight-actions-tight">
+        <a class="btn btn-primary btn-inline" href="/?start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">Ledger</a>
+        {% if settings.feature_ollama_qa %}
+        <a class="btn btn-ghost btn-inline" href="/ask?q={{ 'How much did I spend this month?'|urlencode }}">Ask</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="pulse-card">
+      <p class="pulse-label">{{ pulse.last_month.label }} · same days</p>
+      <p class="pulse-amt pulse-amt-muted">{{ format_money(pulse.last_month.total) }} <span class="pulse-ccy">{{ pulse.currency }}</span></p>
+      <p class="item-meta">{{ pulse.last_month.count }} expenses</p>
+      <div class="insight-actions insight-actions-tight">
+        <a class="btn btn-ghost btn-inline" href="/?start={{ pulse.last_month.start }}&amp;end={{ pulse.last_month.end }}">Ledger</a>
+      </div>
+    </div>
+  </div>
 </section>
 
 <section class="insight-block" aria-label="Categories">
@@ -43,17 +62,23 @@
   {% if pulse.categories %}
   <ul class="bar-list">
     {% for row in pulse.categories %}
-    <li>
+    <li class="bar-card">
       <a class="bar-row" href="/?category={{ row.key|urlencode }}&amp;start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">
-        <span class="bar-label">{{ row.key }}</span>
-        <span class="bar-track" aria-hidden="true">
-          <span class="bar-fill" style="width: {{ row.pct }}%"></span>
+        <span class="bar-rank" aria-hidden="true">{{ loop.index }}</span>
+        <span class="bar-main">
+          <span class="bar-label">{{ row.key }}</span>
+          <span class="bar-track" aria-hidden="true">
+            <span class="bar-fill" style="width: {{ bar_share(row.total, cat_ceiling) }}%"></span>
+          </span>
         </span>
         <span class="bar-amt">{{ format_money(row.total) }}</span>
       </a>
-      <p class="insight-links">
-        <a href="/ask?q={{ ('How much on ' ~ row.key ~ ' this month?')|urlencode }}">Ask about {{ row.key }}</a>
-      </p>
+      <div class="insight-actions insight-actions-tight">
+        <a class="btn btn-ghost btn-inline" href="/?category={{ row.key|urlencode }}&amp;start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">Ledger</a>
+        {% if settings.feature_ollama_qa %}
+        <a class="btn btn-ghost btn-inline" href="/ask?q={{ ('How much on ' ~ row.key ~ ' this month?')|urlencode }}">Ask</a>
+        {% endif %}
+      </div>
     </li>
     {% endfor %}
   </ul>
@@ -67,14 +92,20 @@
   {% if pulse.merchants %}
   <ul class="bar-list">
     {% for row in pulse.merchants %}
-    <li>
+    <li class="bar-card">
       <a class="bar-row" href="/?merchant={{ row.key|urlencode }}&amp;start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">
-        <span class="bar-label">{{ row.key }}</span>
-        <span class="bar-track" aria-hidden="true">
-          <span class="bar-fill" style="width: {{ row.pct }}%"></span>
+        <span class="bar-rank" aria-hidden="true">{{ loop.index }}</span>
+        <span class="bar-main">
+          <span class="bar-label">{{ row.key }}</span>
+          <span class="bar-track" aria-hidden="true">
+            <span class="bar-fill bar-fill-alt" style="width: {{ bar_share(row.total, merch_ceiling) }}%"></span>
+          </span>
         </span>
         <span class="bar-amt">{{ format_money(row.total) }}</span>
       </a>
+      <div class="insight-actions insight-actions-tight">
+        <a class="btn btn-ghost btn-inline" href="/?merchant={{ row.key|urlencode }}&amp;start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">Ledger</a>
+      </div>
     </li>
     {% endfor %}
   </ul>

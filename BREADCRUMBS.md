@@ -1,10 +1,8 @@
 ﻿# Breadcrumbs — xtav2
 
-## Session: 2026-07-27 (receipt dates)
+## Session: 2026-07-27 (insights polish + top-N ask)
 
-- **Work done:** Fixed receipt `spent_on` upload-day pollution — OCR `Datum`/header
-  date preferred over LLM; `date:unparsed` + Pending warn; issue #24 for repair of
-  existing bad rows. Tests green.
-- **Next:** Push/redeploy; re-check new Capture dates against receipt images; then
-  #24 repair for old rows (or manual edit).
-- **Open:** #9, #14, #15, #17 verify, #21–#24.
+- **Work done:** Insights visuals (MoM bars, hero message, Ledger/Ask buttons);
+  Ask deterministic “top N most expensive items this month” with month window.
+- **Prior:** Receipt date OCR fix (#24).
+- **Next:** Redeploy; retest Ask top-5; verify Insights UI on phone.

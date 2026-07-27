@@ -119,6 +119,97 @@ def test_add_and_query_spend() -> None:
         assert "edeka" in ans.lower()
 
 
+def test_top_5_most_expensive_items_this_month() -> None:
+    """Exact user phrase must return ranked line items for this month."""
+    os.environ["FEATURE_LINE_ITEMS"] = "true"
+    get_settings.cache_clear()
+    settings = get_settings()
+    SessionLocal = get_session_factory()
+    phrase = "top 5 most expensive items this month"
+    today = date(2026, 7, 27)
+    with SessionLocal() as db:
+        cheap = expense_service.add_expense(
+            db,
+            settings=settings,
+            spent_on=date(2026, 7, 10),
+            amount=Decimal("20.00"),
+            currency="EUR",
+            merchant="REWE",
+            category="groceries",
+        )
+        expense_service.replace_line_items(
+            db,
+            expense_id=cheap.id,
+            items=[
+                {"description": "Milch", "amount": "1.29"},
+                {"description": "Brot", "amount": "2.49"},
+            ],
+            currency="EUR",
+        )
+        mid = expense_service.add_expense(
+            db,
+            settings=settings,
+            spent_on=date(2026, 7, 12),
+            amount=Decimal("80.00"),
+            currency="EUR",
+            merchant="MediaMarkt",
+            category="household",
+        )
+        expense_service.replace_line_items(
+            db,
+            expense_id=mid.id,
+            items=[
+                {"description": "Kabel", "amount": "19.99"},
+                {"description": "Monitor", "amount": "59.00"},
+            ],
+            currency="EUR",
+        )
+        # Outside this month — must not appear
+        old = expense_service.add_expense(
+            db,
+            settings=settings,
+            spent_on=date(2026, 6, 5),
+            amount=Decimal("500.00"),
+            currency="EUR",
+            merchant="IKEA",
+            category="household",
+        )
+        expense_service.replace_line_items(
+            db,
+            expense_id=old.id,
+            items=[{"description": "Sofa", "amount": "499.00"}],
+            currency="EUR",
+        )
+
+        # Freeze period via monkeypatch of period_bounds by passing explicit... 
+        # query_spend uses period_bounds_for_query with live today — stub by calling
+        # with explicit start/end AND parse intent from phrase.
+        parsed = expense_service.parse_ask_query(phrase)
+        assert parsed["intent"] == "top_expensive"
+        assert parsed["wants_items"] is True
+        assert parsed["top_n"] == 5
+
+        start, end = expense_service.period_bounds_for_query(phrase, today=today)
+        assert start == date(2026, 7, 1)
+        assert end == today
+
+        agg = expense_service.query_spend(
+            db, settings=settings, q=phrase, start=start, end=end
+        )
+        assert agg["intent"] == "top_expensive"
+        top = agg["top_expensive"]
+        assert len(top) >= 3
+        assert top[0]["description"] == "Monitor"
+        assert Decimal(str(top[0]["amount"])) == Decimal("59.00")
+        assert all(r["description"] != "Sofa" for r in top)
+
+        ans = expense_service.try_deterministic_answer(agg)
+        assert ans is not None
+        assert "Monitor" in ans
+        assert "59.00" in ans
+        assert "Sofa" not in ans
+
+
 def test_format_money() -> None:
     assert expense_service.format_money(Decimal("200.0000")) == "200.00"
     assert expense_service.format_money("3.5") == "3.50"

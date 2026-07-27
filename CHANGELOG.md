@@ -7,10 +7,14 @@ versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- Ask: “top 5 most expensive items this month” now returns ranked line items
+  (deterministic; respects this-month window) instead of a generic LLM reply.
 - Receipt **`spent_on`** no longer silently uses upload day: OCR text `Datum`/header
   date wins over LLM; unknown dates get `date:unparsed` + Pending warning ([#24](https://github.com/githubphadnis/xtav2/issues/24)).
 
 ### Added
+- Insights visuals: MoM comparison bars, hero key message, ranked category/merchant
+  cards; Ledger / Ask as buttons.
 - **Insights Phase 1** ([#20](https://github.com/githubphadnis/xtav2/issues/20), `FEATURE_TRENDS_UI`):
   `/insights` MoM pulse, category + merchant bars; tap → ledger filter or Ask preload.
 - **Bank CSV import + reconcile** ([#17](https://github.com/githubphadnis/xtav2/issues/17), `FEATURE_BANK_IMPORT`):

@@ -21,8 +21,8 @@ _ASK_TOOLS: list[dict[str, Any]] = [
             "name": "query_spend",
             "description": (
                 "Query posted expenses and matching receipt line items. "
-                "Use for totals, visit counts, merchants, and products "
-                "(e.g. kebab, Schokolade). Pass the user's focus as q."
+                "Use for totals, visit counts, merchants, products, and "
+                "'top N most expensive items/expenses this month'."
             ),
             "parameters": {
                 "type": "object",
@@ -52,6 +52,8 @@ _SYSTEM = (
     "Never invent amounts or visit counts. "
     "For products (kebab, chocolate, milk), call query_spend with that word — "
     "synonyms like Döner are handled in the database. "
+    "For 'top most expensive items', call query_spend with the full user question; "
+    "use the top_expensive array in the tool result. "
     "Answer in short sentences with numbers from tool results."
 )
 

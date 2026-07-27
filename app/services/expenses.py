@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import date
+from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import ColumnElement, Select, func, or_, select
 from sqlalchemy.orm import Session
 
-from app.config import Settings
+from app.config import Settings, get_settings
 from app.models import Expense, ExpenseLineItem
 
 logger = logging.getLogger("xtav2.expenses")
@@ -69,6 +70,21 @@ _STOPWORDS = frozenset(
         "has",
         "get",
         "got",
+        # top-N ranking noise
+        "top",
+        "most",
+        "expensive",
+        "highest",
+        "biggest",
+        "largest",
+        "items",
+        "item",
+        "purchases",
+        "expenses",
+        "transactions",
+        "list",
+        "show",
+        "give",
     }
 )
 
@@ -138,10 +154,57 @@ def search_tokens(q: str) -> list[str]:
     return expand_product_tokens(out)
 
 
+def period_bounds_for_query(q: str, *, today: date | None = None) -> tuple[date | None, date | None]:
+    """Map phrases like 'this month' to inclusive [start, end] dates."""
+    ql = (q or "").lower()
+    day = today or datetime.now(ZoneInfo(get_settings().app_timezone)).date()
+
+    if re.search(r"\b(this month|mtd|current month)\b", ql):
+        return day.replace(day=1), day
+    if re.search(r"\blast month\b", ql):
+        first = day.replace(day=1)
+        last_end = first - timedelta(days=1)
+        return last_end.replace(day=1), last_end
+    if re.search(r"\b(this year|ytd)\b", ql):
+        return date(day.year, 1, 1), day
+    if re.search(r"\b(this week)\b", ql):
+        start = day - timedelta(days=day.weekday())
+        return start, day
+    return None, None
+
+
 def parse_ask_query(q: str) -> dict[str, object]:
     """Parse NL question into intent + structured filter (merchant/category/tokens)."""
     raw = (q or "").strip()
     ql = raw.lower()
+
+    top_n = 5
+    top_match = re.search(r"\btop\s+(\d{1,2})\b", ql)
+    if top_match:
+        top_n = max(1, min(int(top_match.group(1)), 20))
+
+    if re.search(
+        r"\b(most expensive|highest|biggest|largest|top\s+\d+)\b",
+        ql,
+    ) or (re.search(r"\btop\b", ql) and re.search(r"\b(item|items|purchase|expense)", ql)):
+        intent = "top_expensive"
+        wants_items = bool(
+            re.search(r"\b(item|items|product|products|line|sku)\b", ql)
+        ) or not re.search(r"\b(expense|expenses|transaction|purchase|purchases)\b", ql)
+        # Default "most expensive items" → line items; "expenses" → headers.
+        if re.search(r"\b(expense|expenses|transaction|transactions)\b", ql) and not re.search(
+            r"\b(item|items|product)\b", ql
+        ):
+            wants_items = False
+        return {
+            "intent": intent,
+            "filter_type": "none",
+            "filter_value": None,
+            "tokens": [],
+            "top_n": top_n,
+            "wants_items": wants_items,
+        }
+
     intent = "visits" if re.search(r"\b(how many|how often|number of|times)\b", ql) else "amount"
 
     for alias, category in _CATEGORY_ALIASES.items():
@@ -151,6 +214,8 @@ def parse_ask_query(q: str) -> dict[str, object]:
                 "filter_type": "category",
                 "filter_value": category,
                 "tokens": [category],
+                "top_n": top_n,
+                "wants_items": False,
             }
 
     merchant_match = re.search(
@@ -166,6 +231,8 @@ def parse_ask_query(q: str) -> dict[str, object]:
                 "filter_type": "merchant",
                 "filter_value": entity,
                 "tokens": [entity],
+                "top_n": top_n,
+                "wants_items": False,
             }
 
     tokens = search_tokens(raw)
@@ -174,6 +241,8 @@ def parse_ask_query(q: str) -> dict[str, object]:
         "filter_type": "tokens" if tokens else "none",
         "filter_value": None,
         "tokens": tokens,
+        "top_n": top_n,
+        "wants_items": False,
     }
 
 
@@ -223,6 +292,8 @@ def merchant_breakdown(
     *,
     settings: Settings,
     limit: int = 15,
+    start: date | None = None,
+    end: date | None = None,
 ) -> list[dict[str, object]]:
     """Top merchants by visit count (posted expenses only)."""
     amount_col = Expense.amount_base if settings.feature_multi_currency else Expense.amount
@@ -238,6 +309,10 @@ def merchant_breakdown(
         .order_by(func.count(Expense.id).desc(), Expense.merchant)
         .limit(max(1, min(limit, 50)))
     )
+    if start:
+        stmt = stmt.where(Expense.spent_on >= start)
+    if end:
+        stmt = stmt.where(Expense.spent_on <= end)
     rows = db.execute(stmt).all()
     out: list[dict[str, object]] = []
     for merchant, visits, total in rows:
@@ -254,9 +329,114 @@ def merchant_breakdown(
     return out
 
 
+def top_expensive_line_items(
+    db: Session,
+    *,
+    limit: int = 5,
+    start: date | None = None,
+    end: date | None = None,
+) -> list[dict[str, object]]:
+    """Highest-priced receipt line items in a window (posted, non-duplicate)."""
+    stmt = (
+        select(ExpenseLineItem, Expense)
+        .join(Expense, Expense.id == ExpenseLineItem.expense_id)
+        .where(Expense.status == "posted")
+        .where(_exclude_active_duplicates())
+        .order_by(ExpenseLineItem.amount.desc(), ExpenseLineItem.id.desc())
+        .limit(max(1, min(limit, 50)))
+    )
+    if start:
+        stmt = stmt.where(Expense.spent_on >= start)
+    if end:
+        stmt = stmt.where(Expense.spent_on <= end)
+    rows = db.execute(stmt).all()
+    out: list[dict[str, object]] = []
+    for item, exp in rows:
+        out.append(
+            {
+                "kind": "line_item",
+                "description": item.description,
+                "amount": float(
+                    Decimal(str(item.amount)).quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
+                ),
+                "currency": item.currency,
+                "spent_on": exp.spent_on.isoformat(),
+                "merchant": exp.merchant,
+                "expense_id": exp.id,
+            }
+        )
+    return out
+
+
+def top_expensive_expenses(
+    db: Session,
+    *,
+    settings: Settings,
+    limit: int = 5,
+    start: date | None = None,
+    end: date | None = None,
+) -> list[dict[str, object]]:
+    """Highest posted expense totals in a window."""
+    amount_col = Expense.amount_base if settings.feature_multi_currency else Expense.amount
+    currency_label = (
+        settings.base_currency.upper() if settings.feature_multi_currency else None
+    )
+    stmt = (
+        select(Expense)
+        .where(Expense.status == "posted")
+        .where(_exclude_active_duplicates())
+        .order_by(amount_col.desc(), Expense.id.desc())
+        .limit(max(1, min(limit, 50)))
+    )
+    if start:
+        stmt = stmt.where(Expense.spent_on >= start)
+    if end:
+        stmt = stmt.where(Expense.spent_on <= end)
+    rows = list(db.scalars(stmt).all())
+    out: list[dict[str, object]] = []
+    for exp in rows:
+        amt = exp.amount_base if settings.feature_multi_currency else exp.amount
+        out.append(
+            {
+                "kind": "expense",
+                "description": (exp.merchant or exp.category or "Expense").strip(),
+                "amount": float(
+                    Decimal(str(amt or 0)).quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
+                ),
+                "currency": currency_label or exp.currency,
+                "spent_on": exp.spent_on.isoformat(),
+                "merchant": exp.merchant,
+                "expense_id": exp.id,
+            }
+        )
+    return out
+
+
 def try_deterministic_answer(aggregate: dict[str, object]) -> str | None:
     """Return a grounded answer without LLM when the aggregate is unambiguous."""
     currency = str(aggregate.get("currency") or "EUR")
+    intent = str(aggregate.get("intent") or "")
+
+    if intent == "top_expensive":
+        rows = aggregate.get("top_expensive")
+        if not isinstance(rows, list) or not rows:
+            window = aggregate.get("period_label") or "that period"
+            return f"No expensive items found for {window}."
+        n = len(rows)
+        parts: list[str] = []
+        for i, row in enumerate(rows, start=1):
+            if not isinstance(row, dict):
+                continue
+            label = str(row.get("description") or row.get("merchant") or "item")
+            amt = format_money(Decimal(str(row.get("amount") or 0)))
+            ccy = str(row.get("currency") or currency)
+            merch = str(row.get("merchant") or "").strip()
+            when = str(row.get("spent_on") or "")
+            tail = f" · {merch}" if merch and merch.lower() not in label.lower() else ""
+            parts.append(f"{i}. {label}: {amt} {ccy}{tail} ({when})")
+        kind = "line items" if rows and rows[0].get("kind") == "line_item" else "expenses"
+        return f"Top {n} most expensive {kind}: " + "; ".join(parts) + "."
+
     line_matches = aggregate.get("line_matches")
     line_total = aggregate.get("line_total")
     line_count = int(aggregate.get("line_match_count") or 0)
@@ -274,7 +454,6 @@ def try_deterministic_answer(aggregate: dict[str, object]) -> str | None:
             f"{line_total} {currency}.{extra}"
         )
 
-    intent = str(aggregate.get("intent") or "")
     if intent != "visits":
         return None
     parsed = aggregate.get("filter")
@@ -647,6 +826,14 @@ def query_spend(
     )
     parsed = parse_ask_query(q or "") if q else None
 
+    # Apply NL period ("this month") when caller did not pass explicit bounds.
+    period_label = None
+    if q and start is None and end is None:
+        p_start, p_end = period_bounds_for_query(q)
+        start, end = p_start, p_end
+        if start and end:
+            period_label = f"{start.isoformat()} → {end.isoformat()}"
+
     base_stmt = select(func.coalesce(func.sum(amount_col), 0), func.count(Expense.id)).where(
         Expense.status == "posted",
         _exclude_active_duplicates(),
@@ -665,9 +852,23 @@ def query_spend(
 
     empty_merchant_count = count_empty_merchants(db)
 
+    intent = str(parsed.get("intent") if parsed else "") or None
+    top_expensive: list[dict[str, object]] = []
+    if parsed and intent == "top_expensive":
+        top_n = int(parsed.get("top_n") or 5)
+        wants_items = bool(parsed.get("wants_items"))
+        if wants_items and settings.feature_line_items:
+            top_expensive = top_expensive_line_items(
+                db, limit=top_n, start=start, end=end
+            )
+        if not top_expensive:
+            top_expensive = top_expensive_expenses(
+                db, settings=settings, limit=top_n, start=start, end=end
+            )
+
     line_matches: list[dict[str, object]] = []
     line_total = 0.0
-    if q and settings.feature_line_items:
+    if q and settings.feature_line_items and intent != "top_expensive":
         line_matches = query_line_matches(db, q=q, start=start, end=end)
         line_total = float(
             sum(
@@ -689,14 +890,18 @@ def query_spend(
             Decimal(str(posted_total or 0)).quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
         ),
         "empty_merchant_count": empty_merchant_count,
-        "intent": parsed.get("intent") if parsed else None,
+        "intent": intent,
         "filter": parsed,
-        "merchant_breakdown": merchant_breakdown(db, settings=settings),
+        "merchant_breakdown": merchant_breakdown(
+            db, settings=settings, start=start, end=end
+        ),
         "start": start.isoformat() if start else None,
         "end": end.isoformat() if end else None,
+        "period_label": period_label,
         "q": q,
         "tokens": parsed.get("tokens", []) if parsed else [],
         "line_matches": line_matches,
         "line_total": line_total,
         "line_match_count": len(line_matches),
+        "top_expensive": top_expensive,
     }
