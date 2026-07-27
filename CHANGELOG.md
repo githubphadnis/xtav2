@@ -14,6 +14,8 @@ versioning: [Semantic Versioning](https://semver.org/).
 - Google-first OCR pipeline (local vision = privacy fallback only).
 - Async Capture OCR: upload → `processing` spool → Pending when done (no UI jam).
 - Duplicate detection (`duplicate_of_id`): flag same date/amount/merchant; exclude from Ask until dismissed.
+- Tool-calling Ask agent + product synonyms (kebab↔Döner, etc.).
+- Design note for bank↔receipt reconcile/enrich ([#17](https://github.com/githubphadnis/xtav2/issues/17)).
 - Professional mobile chrome: Fraunces + Source Sans 3, teal/paper palette (no muddy green gradient).
 - OCR post-processing: reject junk categories, absurd dates; tighter German-receipt vision prompt.
 - cOcO Rule 15 (Production-Path Parity) and Rule 16 (Rule Promotion) synced from scaffolding.

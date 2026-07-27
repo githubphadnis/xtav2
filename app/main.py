@@ -27,7 +27,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.db import get_db, get_session_factory, init_db
 from app.features import flag_snapshot, require_flag
-from app.integrations.ollama import ask_ollama, list_models
+from app.integrations.ollama import list_models
 from app.services import expenses as expense_service
 from app.services import settings_store
 from app.services.duplicates import count_active_duplicates, dismiss_duplicate
@@ -497,20 +497,9 @@ async def ask(
     if not require_flag("FEATURE_OLLAMA_QA", settings):
         raise HTTPException(status_code=404, detail="Ollama Q&A disabled")
 
-    aggregate = expense_service.query_spend(db, settings=settings, q=question)
-    answer = expense_service.try_deterministic_answer(aggregate)
-    if answer is None:
-        system = (
-            "You are xtav2, a concise expense assistant. Answer ONLY from the aggregate JSON. "
-            "Use count for visit/how-many questions, merchant_breakdown for store lists, "
-            "line_total for product questions. Never invent numbers. If insufficient, say so."
-        )
-        prompt = f"User question: {question}\nAggregate JSON: {aggregate}\nAnswer:"
-        try:
-            answer = await ask_ollama(settings, prompt, system)
-        except Exception as exc:
-            logger.exception("Ollama ask failed")
-            answer = f"Could not reach Ollama ({exc}). Aggregate: {aggregate}"
+    from app.services.ask_agent import answer_question
+
+    answer, aggregate = await answer_question(db, settings, question=question)
 
     return templates.TemplateResponse(
         request,

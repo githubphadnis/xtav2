@@ -1,8 +1,8 @@
 ﻿# Breadcrumbs — xtav2
 
-## Session: 2026-07-27
+## Session: 2026-07-27 (pm)
 
-- **Work done:** Async OCR; Ask grounding; **#16 duplicates** shipped; #15 lenai
-  platform doc. Mass upload #9 parked.
-- **Next:** User redeploys + checks Ask; then **tool-calling Ask**.
-- **Open:** #9 (parked), #14 security, #15 lenai platform.
+- **Work done:** #16 duplicates; tool-calling Ask + kebab/Döner synonyms;
+  #17 bank↔receipt enrich rules documented (not built).
+- **Next:** Redeploy; retest kebabs Ask; then bank import/#17 or #15 lenai.
+- **Open:** #9 parked, #14 security, #15 lenai, #17 bank reconcile.

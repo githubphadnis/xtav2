@@ -30,10 +30,11 @@
 
 | Issue | Theme |
 |-------|--------|
-| [#9](https://github.com/githubphadnis/xtav2/issues/9) | Mass upload from directory (init ingest) — **parked** |
+| [#9](https://github.com/githubphadnis/xtav2/issues/9) | Mass upload — **parked** |
 | [#14](https://github.com/githubphadnis/xtav2/issues/14) | Security & compliance hardening |
-| [#15](https://github.com/githubphadnis/xtav2/issues/15) | **lenai platform** (infra) — [`docs/lenai-platform.md`](./docs/lenai-platform.md) |
+| [#15](https://github.com/githubphadnis/xtav2/issues/15) | **lenai platform** (infra) |
 | [#16](https://github.com/githubphadnis/xtav2/issues/16) | Duplicate detection — **shipped** |
+| [#17](https://github.com/githubphadnis/xtav2/issues/17) | Bank↔receipt reconcile + enrich line items |
 
 ### Closed (V1.0 / V1.1 partial)
 

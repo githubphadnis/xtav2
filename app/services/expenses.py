@@ -82,11 +82,46 @@ _CATEGORY_ALIASES: dict[str, str] = {
     "groceries": "groceries",
 }
 
+# Product Ask: English/German variants for line-item matching.
+_PRODUCT_SYNONYMS: dict[str, tuple[str, ...]] = {
+    "kebab": ("kebab", "kebap", "kebabs", "döner", "doner", "doener", "dönerkebab"),
+    "kebap": ("kebab", "kebap", "kebabs", "döner", "doner", "doener"),
+    "kebabs": ("kebab", "kebap", "kebabs", "döner", "doner", "doener"),
+    "doner": ("kebab", "kebap", "döner", "doner", "doener"),
+    "doener": ("kebab", "kebap", "döner", "doner", "doener"),
+    "döner": ("kebab", "kebap", "döner", "doner", "doener"),
+    "chocolate": ("chocolate", "schokolade", "schoko", "kakao"),
+    "schokolade": ("chocolate", "schokolade", "schoko"),
+    "milk": ("milk", "milch"),
+    "milch": ("milk", "milch"),
+    "coffee": ("coffee", "kaffee"),
+    "kaffee": ("coffee", "kaffee"),
+    "bread": ("bread", "brot", "brötchen", "brotchen"),
+    "beer": ("beer", "bier"),
+    "wine": ("wine", "wein"),
+}
+
 
 def format_money(amount: Decimal | float | str) -> str:
     """Format amounts for UI as two decimal places."""
     value = Decimal(str(amount)).quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
     return f"{value:.2f}"
+
+
+def expand_product_tokens(tokens: list[str]) -> list[str]:
+    """Expand tokens with product synonyms for line-item / note matching."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for token in tokens:
+        key = token.lower()
+        variants = _PRODUCT_SYNONYMS.get(key, (token,))
+        for variant in variants:
+            low = variant.lower()
+            if low in seen:
+                continue
+            seen.add(low)
+            out.append(variant)
+    return out
 
 
 def search_tokens(q: str) -> list[str]:
@@ -100,7 +135,7 @@ def search_tokens(q: str) -> list[str]:
             continue
         seen.add(key)
         out.append(token)
-    return out
+    return expand_product_tokens(out)
 
 
 def parse_ask_query(q: str) -> dict[str, object]:
@@ -221,6 +256,24 @@ def merchant_breakdown(
 
 def try_deterministic_answer(aggregate: dict[str, object]) -> str | None:
     """Return a grounded answer without LLM when the aggregate is unambiguous."""
+    currency = str(aggregate.get("currency") or "EUR")
+    line_matches = aggregate.get("line_matches")
+    line_total = aggregate.get("line_total")
+    line_count = int(aggregate.get("line_match_count") or 0)
+    if isinstance(line_matches, list) and line_count > 0:
+        samples = []
+        for m in line_matches[:5]:
+            if not isinstance(m, dict):
+                continue
+            samples.append(
+                f"{m.get('description')} ({m.get('amount')} {m.get('currency', currency)})"
+            )
+        extra = f" Examples: {'; '.join(samples)}." if samples else ""
+        return (
+            f"Found {line_count} matching line item(s) totaling "
+            f"{line_total} {currency}.{extra}"
+        )
+
     intent = str(aggregate.get("intent") or "")
     if intent != "visits":
         return None

@@ -206,3 +206,29 @@ def test_line_items_and_ask_query() -> None:
         assert result["line_match_count"] == 1
         assert result["line_total"] == 1.29
         assert "Schokolade" in result["line_matches"][0]["description"]
+
+        # English synonym should hit German line text.
+        kebab_row = expense_service.add_expense(
+            db,
+            settings=settings,
+            spent_on=date(2026, 7, 20),
+            amount=Decimal("8.50"),
+            currency="EUR",
+            merchant="Imbiss",
+            category="restaurant",
+            status="posted",
+        )
+        expense_service.replace_line_items(
+            db,
+            expense_id=kebab_row.id,
+            items=[{"description": "Döner komplett", "amount": "8.50"}],
+            currency="EUR",
+        )
+        kebabs = expense_service.query_spend(
+            db, settings=settings, q="How many times did I spend on kebabs?"
+        )
+        assert kebabs["line_match_count"] == 1
+        assert kebabs["line_total"] == 8.5
+        ans = expense_service.try_deterministic_answer(kebabs)
+        assert ans is not None
+        assert "8.5" in ans or "8.50" in ans
