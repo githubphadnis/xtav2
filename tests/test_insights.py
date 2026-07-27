@@ -14,7 +14,12 @@ os.environ["BASE_CURRENCY"] = "EUR"
 from app.config import get_settings
 from app.db import get_session_factory, init_db
 from app.services import expenses as expense_service
-from app.services.insights import build_pulse, month_windows, period_total
+from app.services.insights import (
+    build_pulse,
+    month_windows,
+    period_total,
+    rolling_month_windows,
+)
 
 get_settings.cache_clear()
 
