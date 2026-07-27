@@ -81,6 +81,16 @@ def test_add_and_query_spend() -> None:
             category="groceries",
             note="milk",
         )
+        expense_service.add_expense(
+            db,
+            settings=settings,
+            spent_on=date(2026, 7, 3),
+            amount=Decimal("8.00"),
+            currency="EUR",
+            merchant="EDEKA",
+            category="groceries",
+            note="",
+        )
         result = expense_service.query_spend(db, settings=settings, q="crisps")
         assert result["count"] == 1
         assert result["total"] == 3.5
@@ -90,7 +100,23 @@ def test_add_and_query_spend() -> None:
         )
         assert nl["count"] == 2
         assert nl["total"] == 15.5
-        assert "REWE" in nl["tokens"]
+        assert nl["filter"]["filter_type"] == "merchant"
+
+        visits = expense_service.query_spend(
+            db, settings=settings, q="How many times did I go to edeka?"
+        )
+        assert visits["count"] == 1
+        assert visits["intent"] == "visits"
+
+        shops = expense_service.query_spend(
+            db, settings=settings, q="How many times did I go to the shops?"
+        )
+        assert shops["count"] == 3
+        assert shops["filter"]["filter_type"] == "category"
+
+        ans = expense_service.try_deterministic_answer(visits)
+        assert ans is not None
+        assert "edeka" in ans.lower()
 
 
 def test_format_money() -> None:

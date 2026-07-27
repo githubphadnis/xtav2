@@ -55,8 +55,32 @@ _STOPWORDS = frozenset(
         "and",
         "or",
         "tis",
+        # visit / count question noise
+        "many",
+        "times",
+        "go",
+        "went",
+        "often",
+        "visit",
+        "visits",
+        "shop",
+        "shops",
+        "have",
+        "has",
+        "get",
+        "got",
     }
 )
+
+# Natural-language → category filter (e.g. "the shops" = groceries).
+_CATEGORY_ALIASES: dict[str, str] = {
+    "shop": "groceries",
+    "shops": "groceries",
+    "supermarket": "groceries",
+    "supermarkets": "groceries",
+    "grocery": "groceries",
+    "groceries": "groceries",
+}
 
 
 def format_money(amount: Decimal | float | str) -> str:
@@ -67,7 +91,7 @@ def format_money(amount: Decimal | float | str) -> str:
 
 def search_tokens(q: str) -> list[str]:
     """Extract meaningful tokens from a natural-language spend question."""
-    tokens = re.findall(r"[A-Za-z0-9]{2,}", q or "")
+    tokens = re.findall(r"[A-Za-z0-9ÄÖÜäöüß]{2,}", q or "")
     out: list[str] = []
     seen: set[str] = set()
     for token in tokens:
@@ -79,13 +103,49 @@ def search_tokens(q: str) -> list[str]:
     return out
 
 
-def _text_match_clause(q: str) -> ColumnElement[bool] | None:
-    """Build OR clause over merchant/category/note/line descriptions."""
+def parse_ask_query(q: str) -> dict[str, object]:
+    """Parse NL question into intent + structured filter (merchant/category/tokens)."""
     raw = (q or "").strip()
-    if not raw:
-        return None
+    ql = raw.lower()
+    intent = "visits" if re.search(r"\b(how many|how often|number of|times)\b", ql) else "amount"
+
+    for alias, category in _CATEGORY_ALIASES.items():
+        if re.search(rf"\b{re.escape(alias)}\b", ql):
+            return {
+                "intent": intent,
+                "filter_type": "category",
+                "filter_value": category,
+                "tokens": [category],
+            }
+
+    merchant_match = re.search(
+        r"(?:at|to|from)\s+(?:the\s+)?([a-z0-9][\w&.\-äöüß]{1,50})",
+        ql,
+        re.IGNORECASE,
+    )
+    if merchant_match:
+        entity = merchant_match.group(1).strip()
+        if entity.lower() not in _CATEGORY_ALIASES:
+            return {
+                "intent": intent,
+                "filter_type": "merchant",
+                "filter_value": entity,
+                "tokens": [entity],
+            }
+
     tokens = search_tokens(raw)
-    needles = [f"%{t}%" for t in tokens] if tokens else [f"%{raw}%"]
+    return {
+        "intent": intent,
+        "filter_type": "tokens" if tokens else "none",
+        "filter_value": None,
+        "tokens": tokens,
+    }
+
+
+def _clause_from_tokens(tokens: list[str]) -> ColumnElement[bool] | None:
+    if not tokens:
+        return None
+    needles = [f"%{t}%" for t in tokens]
     clauses = []
     for needle in needles:
         clauses.append(
@@ -100,7 +160,107 @@ def _text_match_clause(q: str) -> ColumnElement[bool] | None:
                 ),
             )
         )
-    return or_(*clauses) if clauses else None
+    return or_(*clauses)
+
+
+def _ask_filter_clause(parsed: dict[str, object]) -> ColumnElement[bool] | None:
+    """Build WHERE clause from parse_ask_query result."""
+    filter_type = str(parsed.get("filter_type") or "none")
+    if filter_type == "category":
+        value = str(parsed.get("filter_value") or "")
+        return Expense.category.ilike(f"%{value}%")
+    if filter_type == "merchant":
+        value = str(parsed.get("filter_value") or "")
+        needle = f"%{value}%"
+        return or_(
+            Expense.merchant.ilike(needle),
+            Expense.note.ilike(needle),
+        )
+    if filter_type == "tokens":
+        tokens = parsed.get("tokens")
+        if isinstance(tokens, list) and tokens:
+            return _clause_from_tokens([str(t) for t in tokens])
+    return None
+
+
+def merchant_breakdown(
+    db: Session,
+    *,
+    settings: Settings,
+    limit: int = 15,
+) -> list[dict[str, object]]:
+    """Top merchants by visit count (posted expenses only)."""
+    amount_col = Expense.amount_base if settings.feature_multi_currency else Expense.amount
+    stmt = (
+        select(
+            Expense.merchant,
+            func.count(Expense.id),
+            func.coalesce(func.sum(amount_col), 0),
+        )
+        .where(Expense.status == "posted")
+        .group_by(Expense.merchant)
+        .order_by(func.count(Expense.id).desc(), Expense.merchant)
+        .limit(max(1, min(limit, 50)))
+    )
+    rows = db.execute(stmt).all()
+    out: list[dict[str, object]] = []
+    for merchant, visits, total in rows:
+        label = (merchant or "").strip() or "(empty merchant)"
+        out.append(
+            {
+                "merchant": label,
+                "visits": int(visits or 0),
+                "total": float(
+                    Decimal(str(total or 0)).quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
+                ),
+            }
+        )
+    return out
+
+
+def try_deterministic_answer(aggregate: dict[str, object]) -> str | None:
+    """Return a grounded answer without LLM when the aggregate is unambiguous."""
+    intent = str(aggregate.get("intent") or "")
+    if intent != "visits":
+        return None
+    parsed = aggregate.get("filter")
+    if not isinstance(parsed, dict):
+        return None
+    count = int(aggregate.get("count") or 0)
+    posted = int(aggregate.get("posted_total_count") or 0)
+    filter_type = str(parsed.get("filter_type") or "")
+    filter_value = parsed.get("filter_value")
+
+    if filter_type == "merchant" and filter_value:
+        name = str(filter_value)
+        empty = int(aggregate.get("empty_merchant_count") or 0)
+        hint = ""
+        if count <= 2 and empty > 5:
+            hint = (
+                f" Note: {empty} expenses have no merchant name — OCR may have missed the store."
+            )
+        return f"You have {count} posted expense(s) matching “{name}” (of {posted} total).{hint}"
+
+    if filter_type == "category" and filter_value:
+        cat = str(filter_value)
+        return f"You have {count} posted {cat} expense(s) (of {posted} total)."
+
+    if filter_type in {"tokens", "none"}:
+        breakdown = aggregate.get("merchant_breakdown")
+        if isinstance(breakdown, list) and breakdown:
+            top = breakdown[:5]
+            parts = [f"{m['merchant']}: {m['visits']}" for m in top if isinstance(m, dict)]
+            return (
+                f"You have {posted} posted expenses. "
+                f"Top merchants by visits: {', '.join(parts)}."
+            )
+    return None
+
+
+def _text_match_clause(q: str) -> ColumnElement[bool] | None:
+    """Build OR clause over merchant/category/note for phrase or tokens."""
+    parsed = parse_ask_query(q)
+    return _ask_filter_clause(parsed)
 
 
 def replace_line_items(
@@ -348,6 +508,19 @@ def count_expenses(db: Session, *, status: str) -> int:
     return int(db.scalar(stmt) or 0)
 
 
+def count_empty_merchants(db: Session, *, status: str = "posted") -> int:
+    """Posted expenses with blank merchant (OCR gap indicator)."""
+    return int(
+        db.scalar(
+            select(func.count(Expense.id)).where(
+                Expense.status == status,
+                or_(Expense.merchant == "", Expense.merchant.is_(None)),
+            )
+        )
+        or 0
+    )
+
+
 def query_spend(
     db: Session,
     *,
@@ -361,17 +534,25 @@ def query_spend(
     currency_label = (
         settings.base_currency.upper() if settings.feature_multi_currency else "mixed"
     )
-    stmt = select(func.coalesce(func.sum(amount_col), 0), func.count(Expense.id)).where(
+    parsed = parse_ask_query(q or "") if q else None
+
+    base_stmt = select(func.coalesce(func.sum(amount_col), 0), func.count(Expense.id)).where(
         Expense.status == "posted"
     )
     if start:
-        stmt = stmt.where(Expense.spent_on >= start)
+        base_stmt = base_stmt.where(Expense.spent_on >= start)
     if end:
-        stmt = stmt.where(Expense.spent_on <= end)
-    text_clause = _text_match_clause(q) if q else None
+        base_stmt = base_stmt.where(Expense.spent_on <= end)
+    posted_total, posted_total_count = db.execute(base_stmt).one()
+
+    stmt = base_stmt
+    text_clause = _ask_filter_clause(parsed) if parsed else None
     if text_clause is not None:
         stmt = stmt.where(text_clause)
     total, count = db.execute(stmt).one()
+
+    empty_merchant_count = count_empty_merchants(db)
+
     line_matches: list[dict[str, object]] = []
     line_total = 0.0
     if q and settings.feature_line_items:
@@ -391,10 +572,18 @@ def query_spend(
         ),
         "currency": currency_label,
         "count": int(count or 0),
+        "posted_total_count": int(posted_total_count or 0),
+        "posted_total": float(
+            Decimal(str(posted_total or 0)).quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
+        ),
+        "empty_merchant_count": empty_merchant_count,
+        "intent": parsed.get("intent") if parsed else None,
+        "filter": parsed,
+        "merchant_breakdown": merchant_breakdown(db, settings=settings),
         "start": start.isoformat() if start else None,
         "end": end.isoformat() if end else None,
         "q": q,
-        "tokens": search_tokens(q) if q else [],
+        "tokens": parsed.get("tokens", []) if parsed else [],
         "line_matches": line_matches,
         "line_total": line_total,
         "line_match_count": len(line_matches),

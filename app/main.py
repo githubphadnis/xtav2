@@ -164,6 +164,22 @@ def health_db() -> dict[str, object]:
         return {"status": "error", "detail": str(exc)}
 
 
+@app.get("/health/spend-summary")
+def health_spend_summary(
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, object]:
+    """Operator snapshot: posted counts and top merchants (no secrets)."""
+    return {
+        "status": "ok",
+        "posted": expense_service.count_expenses(db, status="posted"),
+        "pending": expense_service.count_expenses(db, status="pending"),
+        "processing": expense_service.count_expenses(db, status="processing"),
+        "empty_merchant_count": expense_service.count_empty_merchants(db),
+        "merchant_breakdown": expense_service.merchant_breakdown(db, settings=settings),
+    }
+
+
 @app.get("/health/flags")
 def health_flags(
     db: Session = Depends(get_db),
@@ -457,18 +473,19 @@ async def ask(
         raise HTTPException(status_code=404, detail="Ollama Q&A disabled")
 
     aggregate = expense_service.query_spend(db, settings=settings, q=question)
-    system = (
-        "You are xtav2, a concise expense assistant. Answer only from the provided "
-        "aggregate JSON. Prefer line_matches / line_total when the question is about a "
-        "product (e.g. chocolate). If data is insufficient, say so. Prefer numbers and "
-        "short sentences."
-    )
-    prompt = f"User question: {question}\nAggregate JSON: {aggregate}\nAnswer:"
-    try:
-        answer = await ask_ollama(settings, prompt, system)
-    except Exception as exc:
-        logger.exception("Ollama ask failed")
-        answer = f"Could not reach Ollama ({exc}). Aggregate: {aggregate}"
+    answer = expense_service.try_deterministic_answer(aggregate)
+    if answer is None:
+        system = (
+            "You are xtav2, a concise expense assistant. Answer ONLY from the aggregate JSON. "
+            "Use count for visit/how-many questions, merchant_breakdown for store lists, "
+            "line_total for product questions. Never invent numbers. If insufficient, say so."
+        )
+        prompt = f"User question: {question}\nAggregate JSON: {aggregate}\nAnswer:"
+        try:
+            answer = await ask_ollama(settings, prompt, system)
+        except Exception as exc:
+            logger.exception("Ollama ask failed")
+            answer = f"Could not reach Ollama ({exc}). Aggregate: {aggregate}"
 
     return templates.TemplateResponse(
         request,
