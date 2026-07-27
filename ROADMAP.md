@@ -33,7 +33,7 @@
 | [#9](https://github.com/githubphadnis/xtav2/issues/9) | Mass upload from directory (init ingest) — **parked** |
 | [#14](https://github.com/githubphadnis/xtav2/issues/14) | Security & compliance hardening |
 | [#15](https://github.com/githubphadnis/xtav2/issues/15) | **lenai platform** (infra) — [`docs/lenai-platform.md`](./docs/lenai-platform.md) |
-| [#16](https://github.com/githubphadnis/xtav2/issues/16) | **Duplicate detection** (date/merchant/amount/items) |
+| [#16](https://github.com/githubphadnis/xtav2/issues/16) | Duplicate detection — **shipped** |
 
 ### Closed (V1.0 / V1.1 partial)
 

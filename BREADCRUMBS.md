@@ -2,8 +2,7 @@
 
 ## Session: 2026-07-27
 
-- **Work done:** Async OCR spool; Ask visit/merchant grounding; opened **#15** lenai
-  platform track (`docs/lenai-platform.md`) separate from product Ask.
-- **Next:** Pull Ask fix; check `/health/spend-summary`; then #9 mass ingest or
-  xtav2 tool-calling Ask (consumes #15).
-- **Open infra:** #14 security, #15 lenai platform.
+- **Work done:** Async OCR; Ask grounding; **#16 duplicates** shipped; #15 lenai
+  platform doc. Mass upload #9 parked.
+- **Next:** User redeploys + checks Ask; then **tool-calling Ask**.
+- **Open:** #9 (parked), #14 security, #15 lenai platform.
