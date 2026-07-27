@@ -82,11 +82,17 @@
 
 ## V2.0 — Insights surface
 
-- Historical trends / spend analytics UI ([#20](https://github.com/githubphadnis/xtav2/issues/20), `FEATURE_TRENDS_UI`)
-- Geospatial spend map from addresses/cities ([#21](https://github.com/githubphadnis/xtav2/issues/21), `FEATURE_GEO`)
-- Line-item category breakdown visuals ([#22](https://github.com/githubphadnis/xtav2/issues/22))
-- Tax/export packs
+One mobile **Insights** product covering goals A–D (see `docs/insights.md`):
+
+| Phase | Issue | Goal |
+|-------|-------|------|
+| 1 Pulse | [#20](https://github.com/githubphadnis/xtav2/issues/20) | A + glance C — MoM, category, merchant |
+| 2 Coach | [#23](https://github.com/githubphadnis/xtav2/issues/23) + savings flag | B — what to cut (warm Ask on real aggregates) |
+| 3 Habits | [#22](https://github.com/githubphadnis/xtav2/issues/22) | D — line-item categories + visual mix |
+| 4 Place | [#21](https://github.com/githubphadnis/xtav2/issues/21) | D/C travel — cities first, map later |
+
+- Tax/export packs (separate)
 
 ## Ask quality (cross-cutting)
 
-- Optional public/cloud LLM beside Ollama ([#23](https://github.com/githubphadnis/xtav2/issues/23)) — compare warmth/quality; privacy toggle must block cloud when local-only
+- Optional public/cloud LLM beside Ollama ([#23](https://github.com/githubphadnis/xtav2/issues/23)) — Insights Phase 2 voice; privacy toggle must block cloud when local-only

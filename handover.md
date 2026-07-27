@@ -7,9 +7,8 @@
 ## Current State / WIP
 
 - **Live:** https://xta.pphadnis.com/
-- **#17 bank import** implemented on working tree (not necessarily pushed): CSV → create
-  or link; receipt confirm enriches bank row. Flag `FEATURE_BANK_IMPORT` (default off).
-- Roadmap queued: #20 analytics, #21 geo, #22 line-item cats, #23 optional public LLM.
+- **#17 bank import** on `main` (`f9502aa`) — enable `FEATURE_BANK_IMPORT` in Portainer.
+- **Insights:** goals A–D all wanted; design in `docs/insights.md` (Phases 1–4). No UI yet.
 
 ## Broken Things / Known gaps
 
@@ -18,7 +17,7 @@
 
 ## Next Immediate Steps
 
-1. Commit/push when ready; redeploy GHCR image.
-2. Portainer: `FEATURE_BANK_IMPORT=true` → Settings → Import bank CSV.
-3. Smoke: bank-only row → Capture matching receipt → Confirm → one ledger row with line items.
-4. Decide on #23 (OpenAI/Anthropic behind privacy toggle) vs tuning lenai (#15).
+1. Portainer: pull new image; `FEATURE_BANK_IMPORT=true`; smoke CSV + receipt enrich.
+2. When building Insights: start Phase 1 (#20) per `docs/insights.md`.
+3. Phase 2 (#23 + savings) for “what to cut” with warmer voice.
+4. Phases 3–4 (#22, #21) after line-item / city data is rich enough.
