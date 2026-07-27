@@ -53,11 +53,46 @@ class InsightsPulse:
     delta_pct_label: str
     categories: list[BreakdownRow]
     merchants: list[BreakdownRow]
+    trend_months: list[PeriodTotal]
 
 
 def today_in_tz(timezone: str) -> date:
     """Calendar today in the app timezone."""
     return datetime.now(ZoneInfo(timezone)).date()
+
+
+def _add_months(first_of_month: date, delta_months: int) -> date:
+    """Shift a first-of-month date by delta_months (may be negative)."""
+    year = first_of_month.year
+    month = first_of_month.month + delta_months
+    while month <= 0:
+        month += 12
+        year -= 1
+    while month > 12:
+        month -= 12
+        year += 1
+    return date(year, month, 1)
+
+
+def month_span(first: date, today: date) -> tuple[date, date]:
+    """Inclusive [start, end] for a calendar month; current month is MTD."""
+    last_day = monthrange(first.year, first.month)[1]
+    end = date(first.year, first.month, last_day)
+    if first.year == today.year and first.month == today.month:
+        end = today
+    return first, end
+
+
+def rolling_month_windows(today: date, *, months: int = 3) -> list[tuple[date, date, str]]:
+    """Oldest→newest rolling months (current = MTD)."""
+    n = max(1, min(months, 12))
+    this_first = today.replace(day=1)
+    out: list[tuple[date, date, str]] = []
+    for back in range(n - 1, -1, -1):
+        first = _add_months(this_first, -back)
+        start, end = month_span(first, today)
+        out.append((start, end, first.strftime("%b")))
+    return out
 
 
 def month_windows(today: date) -> tuple[date, date, date, date]:
@@ -220,6 +255,13 @@ def build_pulse(db: Session, *, settings: Settings, today: date | None = None) -
         group_col=Expense.merchant,
         empty_label="unknown merchant",
     )
+    trend_months: list[PeriodTotal] = []
+    for start, end, short_label in rolling_month_windows(day, months=3):
+        trend_months.append(
+            period_total(
+                db, settings=settings, start=start, end=end, label=short_label
+            )
+        )
     return InsightsPulse(
         currency=currency,
         this_month=this_month,
@@ -229,6 +271,7 @@ def build_pulse(db: Session, *, settings: Settings, today: date | None = None) -
         delta_pct_label=delta_pct_label,
         categories=categories,
         merchants=merchants,
+        trend_months=trend_months,
     )
 
 

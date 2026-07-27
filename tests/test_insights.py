@@ -14,7 +14,7 @@ os.environ["BASE_CURRENCY"] = "EUR"
 from app.config import get_settings
 from app.db import get_session_factory, init_db
 from app.services import expenses as expense_service
-from app.services.insights import build_pulse, month_windows, period_total
+from app.services.insights import build_pulse, month_windows, period_total, rolling_month_windows
 
 get_settings.cache_clear()
 
@@ -34,6 +34,14 @@ def test_month_windows_like_for_like() -> None:
     assert this_end == date(2026, 7, 27)
     assert last_start == date(2026, 6, 1)
     assert last_end == date(2026, 6, 27)
+
+
+def test_rolling_three_months_full_priors_mtd_current() -> None:
+    windows = rolling_month_windows(date(2026, 7, 27), months=3)
+    assert len(windows) == 3
+    assert windows[0] == (date(2026, 5, 1), date(2026, 5, 31), "May")
+    assert windows[1] == (date(2026, 6, 1), date(2026, 6, 30), "Jun")
+    assert windows[2] == (date(2026, 7, 1), date(2026, 7, 27), "Jul")
 
 
 def test_pulse_matches_query_spend() -> None:
@@ -94,6 +102,9 @@ def test_pulse_matches_query_spend() -> None:
         assert pulse.categories[0].key == "groceries"
         assert pulse.categories[0].total == Decimal("60.00")
         assert any(m.key == "REWE" for m in pulse.merchants)
+        assert len(pulse.trend_months) == 3
+        assert pulse.trend_months[-1].total == Decimal("60.00")
+        assert pulse.trend_months[1].total == Decimal("130.00")  # full June
 
 
 def test_period_total_excludes_active_duplicates() -> None:

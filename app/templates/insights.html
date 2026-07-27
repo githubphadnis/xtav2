@@ -16,23 +16,20 @@
   </div>
 </section>
 
-<section class="insight-pulse" aria-label="Month over month">
-  <h2 class="insight-h">Month over month</h2>
-  <div class="mom-chart" role="img" aria-label="Spend comparison bars">
-    <div class="mom-row">
-      <span class="mom-label">{{ pulse.this_month.label }}</span>
-      <span class="mom-track">
-        <span class="mom-fill mom-fill-now" style="width: {{ bar_share(pulse.this_month.total, mom_ceiling) }}%"></span>
+<section class="insight-pulse" aria-label="Rolling three months">
+  <h2 class="insight-h">Last 3 months</h2>
+  <div class="trend-chart" role="img" aria-label="Rolling three-month spend in {{ pulse.currency }}">
+    {% for m in pulse.trend_months %}
+    <a class="trend-col" href="/?start={{ m.start }}&amp;end={{ m.end }}">
+      <span class="trend-peak">{{ format_money(m.total) }}</span>
+      <span class="trend-bar-wrap">
+        <span class="trend-bar {% if loop.last %}is-current{% endif %}"
+              style="height: {{ bar_share(m.total, trend_ceiling) }}%"></span>
       </span>
-      <span class="mom-amt">{{ format_money(pulse.this_month.total) }}</span>
-    </div>
-    <div class="mom-row">
-      <span class="mom-label">{{ pulse.last_month.label }}</span>
-      <span class="mom-track">
-        <span class="mom-fill mom-fill-prev" style="width: {{ bar_share(pulse.last_month.total, mom_ceiling) }}%"></span>
-      </span>
-      <span class="mom-amt">{{ format_money(pulse.last_month.total) }}</span>
-    </div>
+      <span class="trend-label">{{ m.label }}</span>
+      <span class="trend-meta">{{ m.count }} tx</span>
+    </a>
+    {% endfor %}
   </div>
   <div class="pulse-grid">
     <div class="pulse-card">
@@ -64,7 +61,6 @@
     {% for row in pulse.categories %}
     <li class="bar-card">
       <a class="bar-row" href="/?category={{ row.key|urlencode }}&amp;start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">
-        <span class="bar-rank" aria-hidden="true">{{ loop.index }}</span>
         <span class="bar-main">
           <span class="bar-label">{{ row.key }}</span>
           <span class="bar-track" aria-hidden="true">
@@ -94,7 +90,6 @@
     {% for row in pulse.merchants %}
     <li class="bar-card">
       <a class="bar-row" href="/?merchant={{ row.key|urlencode }}&amp;start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">
-        <span class="bar-rank" aria-hidden="true">{{ loop.index }}</span>
         <span class="bar-main">
           <span class="bar-label">{{ row.key }}</span>
           <span class="bar-track" aria-hidden="true">

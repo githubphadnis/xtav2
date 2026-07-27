@@ -385,7 +385,7 @@ def insights_page(
     pulse = build_pulse(db, settings=settings)
     cat_ceiling = max((c.total for c in pulse.categories), default=Decimal(0))
     merch_ceiling = max((m.total for m in pulse.merchants), default=Decimal(0))
-    mom_ceiling = max(pulse.this_month.total, pulse.last_month.total, Decimal("0.01"))
+    trend_ceiling = max((m.total for m in pulse.trend_months), default=Decimal("0.01"))
     return templates.TemplateResponse(
         request,
         "insights.html",
@@ -400,7 +400,7 @@ def insights_page(
             bar_share=bar_share,
             cat_ceiling=cat_ceiling,
             merch_ceiling=merch_ceiling,
-            mom_ceiling=mom_ceiling,
+            trend_ceiling=trend_ceiling,
         ),
     )
 

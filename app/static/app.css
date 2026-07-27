@@ -439,58 +439,81 @@ input:focus {
   margin-bottom: 1.5rem;
 }
 
-.mom-chart {
+.trend-chart {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+  align-items: end;
   margin: 0 0 1rem;
-  padding: 0.85rem 0.9rem;
+  padding: 0.9rem 0.75rem 0.75rem;
+  min-height: 14rem;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
 
-.mom-row {
-  display: grid;
-  grid-template-columns: 4.5rem 1fr auto;
-  gap: 0.55rem;
+.trend-col {
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  min-width: 0;
+  height: 12rem;
+  color: inherit;
+  text-decoration: none;
 }
 
-.mom-row + .mom-row {
-  margin-top: 0.65rem;
+.trend-col:hover {
+  text-decoration: none;
 }
 
-.mom-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--ink-muted);
+.trend-col:hover .trend-bar {
+  filter: brightness(1.08);
 }
 
-.mom-track {
-  height: 0.85rem;
-  background: var(--accent-soft);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.mom-fill {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  min-width: 3px;
-}
-
-.mom-fill-now {
-  background: var(--accent);
-}
-
-.mom-fill-prev {
-  background: color-mix(in srgb, var(--ink-muted) 55%, var(--accent-soft));
-}
-
-.mom-amt {
+.trend-peak {
+  font-family: var(--font-display);
   font-size: 0.85rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  text-align: center;
+  color: var(--ink);
+}
+
+.trend-bar-wrap {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 3.25rem;
+  min-height: 0;
+}
+
+.trend-bar {
+  display: block;
+  width: 100%;
+  min-height: 4px;
+  border-radius: 0.45rem 0.45rem 0.2rem 0.2rem;
+  background: color-mix(in srgb, var(--ink-muted) 45%, var(--accent-soft));
+}
+
+.trend-bar.is-current {
+  background: var(--accent);
+}
+
+.trend-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.trend-meta {
+  font-size: 0.7rem;
+  color: var(--ink-muted);
 }
 
 .pulse-grid {
@@ -584,7 +607,7 @@ input:focus {
 
 .bar-row {
   display: grid;
-  grid-template-columns: 1.4rem 1fr auto;
+  grid-template-columns: 1fr auto;
   gap: 0.55rem;
   align-items: center;
   padding: 0.15rem 0;
@@ -598,13 +621,6 @@ input:focus {
 
 .bar-row:hover .bar-label {
   color: var(--accent);
-}
-
-.bar-rank {
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--ink-muted);
 }
 
 .bar-main {
