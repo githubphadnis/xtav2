@@ -2,7 +2,7 @@
 {% block title %}Ledger · xtav2{% endblock %}
 {% block content %}
 <h1 class="page-title">Ledger</h1>
-<p class="page-lead">Recent posted expenses.</p>
+<p class="page-lead">Recent posted expenses. Active duplicates are excluded from Ask totals.</p>
 
 {% if expenses %}
 <ul class="list">
@@ -12,6 +12,13 @@
       <p class="item-title">{{ e.merchant or e.category or "Expense" }}</p>
       <p class="item-meta">{{ e.spent_on }} · {{ e.category }}</p>
       {% if e.note %}<p class="item-meta">{{ e.note }}</p>{% endif %}
+      {% if e.duplicate_of_id and not e.duplicate_dismissed %}
+      <p class="dup-warn">Possible duplicate of #{{ e.duplicate_of_id }}</p>
+      <form method="post" action="/expenses/{{ e.id }}/dismiss-duplicate" style="margin-top:0.35rem">
+        <input type="hidden" name="next" value="/" />
+        <button type="submit" class="btn-danger-text">Not a duplicate</button>
+      </form>
+      {% endif %}
     </div>
     <div style="text-align:right">
       <p class="item-amt">{{ format_money(e.amount) }} {{ e.currency }}</p>

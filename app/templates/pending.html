@@ -45,6 +45,16 @@
         <input name="note" value="{{ e.note }}" />
       </label>
 
+      {% if e.duplicate_of_id and not e.duplicate_dismissed %}
+      <div class="flash" style="background:var(--warn-soft)">
+        Possible duplicate of expense #{{ e.duplicate_of_id }}
+        (same date / amount / merchant). Confirm deletes after review, or dismiss.
+      </div>
+      <button form="dismiss-{{ e.id }}" type="submit" class="btn btn-ghost" style="margin-bottom:0.75rem">
+        Not a duplicate
+      </button>
+      {% endif %}
+
       {% if settings.feature_line_items %}
       <p class="page-lead" style="margin:1rem 0 0.5rem">Line items</p>
       {% set items = line_items_by_expense.get(e.id, []) %}
@@ -81,6 +91,9 @@
       </div>
     </form>
     <form id="del-{{ e.id }}" method="post" action="/expenses/{{ e.id }}/delete">
+      <input type="hidden" name="next" value="/pending" />
+    </form>
+    <form id="dismiss-{{ e.id }}" method="post" action="/expenses/{{ e.id }}/dismiss-duplicate">
       <input type="hidden" name="next" value="/pending" />
     </form>
   </li>

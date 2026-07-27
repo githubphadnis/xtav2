@@ -30,6 +30,7 @@ from app.features import flag_snapshot, require_flag
 from app.integrations.ollama import ask_ollama, list_models
 from app.services import expenses as expense_service
 from app.services import settings_store
+from app.services.duplicates import count_active_duplicates, dismiss_duplicate
 from app.services.expenses import format_money
 from app.services.receipts import (
     enqueue_receipt_upload,
@@ -112,6 +113,10 @@ async def _requeue_stuck_processing() -> None:
     try:
         SessionLocal = get_session_factory()
         with SessionLocal() as db:
+            from app.services.duplicates import rescan_all_duplicates
+
+            n = rescan_all_duplicates(db, limit=500)
+            logger.info("Duplicate rescan touched %s expenses", n)
             stuck = expense_service.list_processing(db, limit=100)
             ids = [row.id for row in stuck]
         for expense_id in ids:
@@ -176,6 +181,7 @@ def health_spend_summary(
         "pending": expense_service.count_expenses(db, status="pending"),
         "processing": expense_service.count_expenses(db, status="processing"),
         "empty_merchant_count": expense_service.count_empty_merchants(db),
+        "active_duplicates": count_active_duplicates(db),
         "merchant_breakdown": expense_service.merchant_breakdown(db, settings=settings),
     }
 
@@ -408,6 +414,25 @@ async def upload_receipt(
 
     background_tasks.add_task(_ocr_background, row.id)
     return RedirectResponse(url=f"/capture?queued={row.id}", status_code=303)
+
+
+@app.post("/expenses/{expense_id}/dismiss-duplicate")
+def dismiss_duplicate_expense(
+    expense_id: int,
+    next: str = Form("/"),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> RedirectResponse:
+    if not (
+        require_flag("FEATURE_MANUAL_ENTRY", settings)
+        or require_flag("FEATURE_RECEIPT_OCR", settings)
+    ):
+        raise HTTPException(status_code=404, detail="Dismiss disabled")
+    row = dismiss_duplicate(db, expense_id=expense_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    dest = next if next.startswith("/") else "/"
+    return RedirectResponse(url=dest, status_code=303)
 
 
 @app.post("/expenses/{expense_id}/confirm")

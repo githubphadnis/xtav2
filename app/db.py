@@ -49,6 +49,9 @@ def _patch_schema(engine: Engine) -> None:
     statements = [
         "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'posted'",
         "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS receipt_path VARCHAR(512)",
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS fingerprint VARCHAR(64)",
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS duplicate_of_id INTEGER",
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS duplicate_dismissed BOOLEAN DEFAULT FALSE",
     ]
     with engine.begin() as conn:
         for stmt in statements:

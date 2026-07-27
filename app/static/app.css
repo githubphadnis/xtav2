@@ -315,6 +315,13 @@ input:focus {
   margin: 0;
 }
 
+.dup-warn {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--warn);
+}
+
 .empty {
   color: var(--ink-muted);
   font-size: 0.9rem;

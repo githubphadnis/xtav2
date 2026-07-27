@@ -198,6 +198,7 @@ def merchant_breakdown(
             func.coalesce(func.sum(amount_col), 0),
         )
         .where(Expense.status == "posted")
+        .where(_exclude_active_duplicates())
         .group_by(Expense.merchant)
         .order_by(func.count(Expense.id).desc(), Expense.merchant)
         .limit(max(1, min(limit, 50)))
@@ -311,6 +312,9 @@ def replace_line_items(
     db.commit()
     for row in created:
         db.refresh(row)
+    from app.services.duplicates import refresh_duplicate_link
+
+    refresh_duplicate_link(db, expense_id=expense_id)
     return created
 
 
@@ -341,6 +345,7 @@ def query_line_matches(
         select(ExpenseLineItem, Expense)
         .join(Expense, Expense.id == ExpenseLineItem.expense_id)
         .where(Expense.status == "posted")
+        .where(_exclude_active_duplicates())
     )
     if start:
         stmt = stmt.where(Expense.spent_on >= start)
@@ -418,6 +423,11 @@ def add_expense(
     db.add(row)
     db.commit()
     db.refresh(row)
+    if status in {"pending", "posted"}:
+        from app.services.duplicates import refresh_duplicate_link
+
+        refresh_duplicate_link(db, expense_id=row.id)
+        db.refresh(row)
     return row
 
 
@@ -453,6 +463,11 @@ def update_expense(
         row.base_currency = currency_norm
     db.commit()
     db.refresh(row)
+    if row.status in {"pending", "posted"}:
+        from app.services.duplicates import refresh_duplicate_link
+
+        refresh_duplicate_link(db, expense_id=row.id)
+        db.refresh(row)
     return row
 
 
@@ -464,6 +479,14 @@ def delete_expense(db: Session, *, expense_id: int) -> bool:
     db.delete(row)
     db.commit()
     return True
+
+
+def _exclude_active_duplicates() -> ColumnElement[bool]:
+    """Ask/totals: keep originals and dismissed suspects; drop active duplicates."""
+    return or_(
+        Expense.duplicate_of_id.is_(None),
+        Expense.duplicate_dismissed.is_(True),
+    )
 
 
 def list_expenses(
@@ -515,6 +538,7 @@ def count_empty_merchants(db: Session, *, status: str = "posted") -> int:
             select(func.count(Expense.id)).where(
                 Expense.status == status,
                 or_(Expense.merchant == "", Expense.merchant.is_(None)),
+                _exclude_active_duplicates(),
             )
         )
         or 0
@@ -537,7 +561,8 @@ def query_spend(
     parsed = parse_ask_query(q or "") if q else None
 
     base_stmt = select(func.coalesce(func.sum(amount_col), 0), func.count(Expense.id)).where(
-        Expense.status == "posted"
+        Expense.status == "posted",
+        _exclude_active_duplicates(),
     )
     if start:
         base_stmt = base_stmt.where(Expense.spent_on >= start)

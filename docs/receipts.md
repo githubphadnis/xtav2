@@ -39,12 +39,15 @@ UPLOAD_DIR=/data/uploads
 Then in the app **Settings**: confirm privacy local-only is **off** and
 “Google Vision effective” is **yes**.
 
-## Ask
+# Duplicate detection
 
-Questions like “how much on chocolate?” use `line_matches` / `line_total` from
-`query_spend` over `expense_line_items.description`.
+On create/update of pending/posted expenses, xtav2 computes a fingerprint from
+``spent_on + amount + normalized merchant`` (+ line-item hash when items exist).
+A newer matching row is linked via ``duplicate_of_id`` (not auto-deleted).
 
-## Schema
+- **Ask / totals:** active duplicates (linked and not dismissed) are excluded.
+- **UI:** Pending and Ledger warn; **Not a duplicate** dismisses the flag.
+- **Rescan:** on app startup for recent rows (catch-up after deploy).
 
-Table `expense_line_items` is created automatically on app startup (`create_all`).
-No manual migration.
+Empty merchant with no line items → no fingerprint (avoids false matches).
+
