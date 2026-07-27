@@ -32,6 +32,7 @@
 |-------|--------|
 | [#9](https://github.com/githubphadnis/xtav2/issues/9) | Mass upload from directory (init ingest) |
 | [#14](https://github.com/githubphadnis/xtav2/issues/14) | Security & compliance hardening |
+| [#15](https://github.com/githubphadnis/xtav2/issues/15) | **lenai platform** (infra — not product Ask) — [`docs/lenai-platform.md`](./docs/lenai-platform.md) |
 
 ### Closed (V1.0 / V1.1 partial)
 
@@ -54,6 +55,7 @@
 | V1.1 | Camera capture + mass upload (flagged) + bank CSV; Google Vision optional |
 | V1.2 | Email ingest + savings insights |
 | V1.x | **Security & compliance hardening** (dedicated iteration — see `docs/security-hardening-backlog.md`) |
+| Infra | **lenai platform** — models, capacity, tool-calling runtime (`docs/lenai-platform.md`, #15) |
 | V2.0 | Trends UI, geo, public docs site polish |
 
 ---

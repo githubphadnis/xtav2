@@ -1,7 +1,9 @@
 ﻿# Breadcrumbs — xtav2
 
-## Session: 2026-07-26 (line items + Google OCR)
+## Session: 2026-07-27
 
-- **Work done:** Line items + Google-first OCR; Ask product grounding; shipped `0a953b0`.
-- **Next:** Portainer Google env + privacy off; recapture; Ask Schokolade.
-- **Note:** Vision key from `wdmmgv2` (`GCLOUD_VISION_API_KEY`), not classic XTA (OpenAI).
+- **Work done:** Async OCR spool; Ask visit/merchant grounding; opened **#15** lenai
+  platform track (`docs/lenai-platform.md`) separate from product Ask.
+- **Next:** Pull Ask fix; check `/health/spend-summary`; then #9 mass ingest or
+  xtav2 tool-calling Ask (consumes #15).
+- **Open infra:** #14 security, #15 lenai platform.
