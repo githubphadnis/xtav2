@@ -18,6 +18,7 @@
 
 | Date | Error | Solution |
 |------|-------|----------|
+| 2026-07-27 | Receipt dates = upload day | OCR `Datum` parse first; never silent today; #24 |
 | 2026-07-26 | `create_project` MCP git init failed (`spawn /bin/sh ENOENT` on Windows) | Created dir + `git init -b main` locally, then `move_agent_to_root` |
 | 2026-07-26 | Portainer: `No module named psycopg2` | Normalize DB URL to `postgresql+psycopg://` |
 | 2026-07-26 | Ask: whole-sentence ILIKE → total 0 | Tokenize NL queries; test exact user phrases first |
@@ -28,6 +29,7 @@
 - Building OCR/email/bank before a daily-use manual ledger is live
 - Cloud LLM as the only path for Q&A
 - Hardcoding `lenai` / ports in code — use env/config
+- Defaulting receipt `spent_on` to upload/OCR day when a printed date exists
 - Duplicating domain logic in MCP vs HTTP — share services
 - Shipping after SQLite-only CI when prod is Postgres
 - Treating DNS/ping as proof that Ollama/model works
