@@ -44,7 +44,7 @@ def test_same_currency_no_api() -> None:
     )
     assert err is None
     assert base == Decimal("12.50")
-    assert rate == Decimal("1")
+    assert rate == Decimal(1)
 
 
 def test_foreign_with_override() -> None:

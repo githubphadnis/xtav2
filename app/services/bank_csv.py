@@ -7,7 +7,7 @@ import hashlib
 import io
 import re
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 
 _DATE_HEADERS = {
@@ -86,7 +86,12 @@ def _parse_date(raw: str) -> date | None:
         return None
     for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%d.%m.%y", "%d/%m/%Y", "%m/%d/%Y"):
         try:
-            return datetime.strptime(text[:10] if len(text) >= 8 else text, fmt).date()
+            # Date-only CSV fields — attach UTC so ruff DTZ007 is satisfied.
+            return (
+                datetime.strptime(text[:10] if len(text) >= 8 else text, fmt)
+                .replace(tzinfo=UTC)
+                .date()
+            )
         except ValueError:
             continue
     # Try ISO with time
@@ -101,7 +106,7 @@ def _parse_amount(raw: str) -> Decimal | None:
     if not text:
         return None
     # European: 1.234,56 or -19,32 ; US: 1,234.56
-    neg = text.startswith("-") or text.startswith("(")
+    neg = text.startswith(("-", "("))
     text = text.replace("(", "").replace(")", "").replace("+", "").strip()
     text = text.replace("€", "").replace("EUR", "").replace(" ", "")
     if "," in text and "." in text:

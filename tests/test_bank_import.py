@@ -38,7 +38,7 @@ def test_parse_german_signed_csv() -> None:
         "Buchungstag;Betrag;Verwendungszweck;Währung\n"
         "25.07.2026;-19,32;REWE SAGT DANKE;EUR\n"
         "25.07.2026;1500,00;GEHALT;EUR\n"
-    ).encode("utf-8")
+    ).encode()
     rows = parse_bank_csv(raw, default_currency="EUR", filename="n26.csv")
     assert len(rows) == 1
     assert rows[0].amount == Decimal("19.32")
@@ -121,9 +121,9 @@ def test_receipt_then_bank_links_without_second_row() -> None:
             receipt_path="r2.jpg",
         )
         csv_data = (
-            "date,amount,merchant,currency\n"
-            "2026-07-25,-19.32,REWE Markt,EUR\n"
-        ).encode("utf-8")
+            b"date,amount,merchant,currency\n"
+            b"2026-07-25,-19.32,REWE Markt,EUR\n"
+        )
         result = import_bank_csv(
             db, settings=settings, data=csv_data, filename="stmt.csv"
         )

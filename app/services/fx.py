@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from functools import lru_cache
 
@@ -87,7 +87,7 @@ def get_fx_rate(
     if override is not None and override > 0:
         return override.quantize(_RATE_QUANT, rounding=ROUND_HALF_UP)
     if src == tgt:
-        return Decimal("1")
+        return Decimal(1)
     raw = _fetch_rate_cached(_frankfurter_base(settings), on.isoformat(), src, tgt)
     return Decimal(raw).quantize(_RATE_QUANT, rounding=ROUND_HALF_UP)
 
@@ -108,9 +108,9 @@ def to_base_amount(
     currency_norm = currency.strip().upper()
     base = settings.base_currency.strip().upper()
     if not settings.feature_multi_currency:
-        return amount, Decimal("1"), None
+        return amount, Decimal(1), None
     if currency_norm == base:
-        return amount, Decimal("1"), None
+        return amount, Decimal(1), None
     try:
         rate = get_fx_rate(
             settings,
@@ -140,7 +140,7 @@ def fx_health(settings: Settings) -> dict[str, object]:
             settings,
             source=other,
             target=base,
-            on=date.today() - timedelta(days=1),
+            on=datetime.now(UTC).date() - timedelta(days=1),
         )
         return {
             "status": "ok",
