@@ -21,6 +21,9 @@
         <label class="field">
           <span>Date</span>
           <input required type="date" name="spent_on" value="{{ e.spent_on }}" />
+          {% if e.note and 'date:unparsed' in e.note %}
+          <p class="dup-warn">Printed date not found — check the receipt image and fix before confirm.</p>
+          {% endif %}
         </label>
         <label class="field">
           <span>Amount</span>

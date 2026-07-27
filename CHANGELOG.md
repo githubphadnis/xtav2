@@ -6,6 +6,10 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Receipt **`spent_on`** no longer silently uses upload day: OCR text `Datum`/header
+  date wins over LLM; unknown dates get `date:unparsed` + Pending warning ([#24](https://github.com/githubphadnis/xtav2/issues/24)).
+
 ### Added
 - **Insights Phase 1** ([#20](https://github.com/githubphadnis/xtav2/issues/20), `FEATURE_TRENDS_UI`):
   `/insights` MoM pulse, category + merchant bars; tap → ledger filter or Ask preload.

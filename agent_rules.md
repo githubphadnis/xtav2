@@ -133,6 +133,12 @@ when a project gains users or collaborators. See `AGENTS.md` for tier definition
       `"How much did I spend at REWE this year?"` must match merchant `REWE`.
     - **Display vs storage:** Money, rates, and quantities must have an explicit display
       format (e.g. 2 decimal places). Do not dump raw `Numeric` / float strings into UI.
+    - **Document dates ≠ upload time:** For receipts/statements/emails, the event date
+      (`spent_on`, booking date, etc.) must come from the **source document**
+      (deterministic OCR/CSV parse preferred over LLM). Never silently default to
+      `today()` / upload time when a printed date exists or when the parse failed —
+      fail loud or mark `date:unparsed` for human confirm. Test with real locale formats
+      (e.g. German `Datum 03.02.2026`) before shipping.
     - **Image smoke (Governed / Docker deploys):** After build, smoke the container with
       prod-like env (`DATABASE_URL`, `OLLAMA_*`) at least far enough to import the app and
       hit `/health/*` — not only `pytest` on the runner filesystem.

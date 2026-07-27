@@ -109,6 +109,7 @@ def test_coerce_sanitizes_bad_vision_fields() -> None:
 
     settings = Settings(base_currency="EUR")
     today = date(2026, 7, 26)
+    # LLM invents absurd year; OCR text has the real printed date — OCR must win.
     out = _coerce_extract(
         settings,
         {
@@ -125,10 +126,12 @@ def test_coerce_sanitizes_bad_vision_fields() -> None:
             ],
         },
         today,
+        ocr_text="REWE\nDatum: 15.03.26\nSUMME EUR 19,32\n",
     )
     assert out["amount"] == Decimal("19.32")
     assert out["category"] == "receipt"
-    assert out["spent_on"] == today  # absurd year → today
+    assert out["spent_on"] == date(2026, 3, 15)
+    assert out["date_source"] == "ocr"
     assert out["note"] == ""
     assert out["merchant"] == "REWE"
     assert len(out["items"]) == 1
@@ -141,6 +144,55 @@ def test_coerce_sanitizes_bad_vision_fields() -> None:
     )
     assert de["spent_on"] == date(2026, 7, 25)
     assert de["category"] == "groceries"
+    assert de["date_source"] == "llm"
+
+
+def test_ocr_date_beats_llm_upload_day() -> None:
+    """User phrase: receipt says 03.02.2026 but model returns upload day."""
+    from app.config import Settings
+    from app.services.receipts import _coerce_extract, extract_receipt_date_from_text
+
+    today = date(2026, 7, 27)
+    ocr = (
+        "EDEKA Musterstadt\n"
+        "Berliner Str. 1\n"
+        "Datum 03.02.2026  Uhrzeit 18:41\n"
+        "Milch 1,19\n"
+        "SUMME EUR 1,19\n"
+    )
+    assert extract_receipt_date_from_text(ocr, today) == date(2026, 2, 3)
+
+    settings = Settings(base_currency="EUR")
+    out = _coerce_extract(
+        settings,
+        {
+            "amount": "1.19",
+            "spent_on": today.isoformat(),  # model wrongly used "today"
+            "merchant": "EDEKA",
+            "category": "groceries",
+        },
+        today,
+        ocr_text=ocr,
+    )
+    assert out["spent_on"] == date(2026, 2, 3)
+    assert out["date_source"] == "ocr"
+
+
+def test_missing_date_marks_unparsed_not_silent_today_as_truth() -> None:
+    from app.config import Settings
+    from app.services.receipts import _coerce_extract
+
+    settings = Settings(base_currency="EUR")
+    today = date(2026, 7, 27)
+    out = _coerce_extract(
+        settings,
+        {"amount": "5.00", "spent_on": None, "merchant": "Kiosk"},
+        today,
+        ocr_text="Kiosk\nSUMME 5,00\nKeine Datumzeile hier\n",
+    )
+    assert out["spent_on"] == today  # last resort only
+    assert out["date_source"] == "fallback"
+    assert "date:unparsed" in str(out["note"])
 
 
 def test_async_enqueue_then_finalize() -> None:

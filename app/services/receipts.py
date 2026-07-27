@@ -7,7 +7,7 @@ import json
 import logging
 import re
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -35,7 +35,7 @@ _STRUCTURE_SYSTEM = """You extract expense fields from a retail receipt image or
 Return ONLY a JSON object with these keys:
   amount (number), currency (3-letter ISO, usually EUR),
   merchant (store name), category (one short English word),
-  spent_on (YYYY-MM-DD), note (short string or null),
+  spent_on (YYYY-MM-DD or null), note (short string or null),
   items (array of purchased products).
 
 Each items[] entry:
@@ -45,8 +45,10 @@ Rules:
 - amount = final TOTAL to pay (German: SUMME, Summe EUR, Gesamtbetrag).
   Never use PAYBACK points, Steuernummer, PLZ, or a single line as the header amount unless it is the total.
 - German decimals use comma: 19,32 → 19.32
-- spent_on = receipt date. German DD.MM.YY or DD.MM.YYYY.
-  Example: 25.07.26 → 2026-07-25. Never invent a year.
+- spent_on = the PRINTED receipt/purchase date only (German DD.MM.YY or DD.MM.YYYY).
+  Example: 15.03.26 → 2026-03-15. Never invent a year.
+  NEVER use "today" or the date from this prompt unless that exact date is printed on the receipt.
+  If the printed date is unreadable, return null — do not guess.
 - merchant = store name near the top (REWE, Edeka), not a product.
 - category = ONE of: groceries, restaurant, fuel, pharmacy, household, other.
 - items = every purchasable product line with its price. Skip MwSt/VAT blocks,
@@ -75,39 +77,134 @@ _CATEGORY_ALLOW = {
     "health",
 }
 
+# Printed date tokens (DE/EU). Avoid matching times like 14:32 alone.
 _DE_DATE = re.compile(
     r"\b(\d{1,2})[./](\d{1,2})[./](\d{2}|\d{4})\b"
 )
+_DATE_LABELED = re.compile(
+    r"(?is)(?:datum|date|bon\s*-?\s*datum|kaufdatum|verkauf(?:sdatum)?|gekauft)"
+    r"[^\d]{0,24}(\d{1,2})[./](\d{1,2})[./](\d{2}|\d{4})"
+)
+_ISO_DATE = re.compile(r"\b(20\d{2}|19\d{2})-(\d{2})-(\d{2})\b")
 
 
-def _parse_spent_on(value: object, today: date) -> date:
-    """Parse ISO or German dates; reject absurd years relative to today."""
+def _normalize_year(year: int, today: date) -> int:
+    """Map 2-digit years into a plausible century near today."""
+    if year >= 100:
+        return year
+    # Prefer 2000+ for YY; if that lands >2y ahead, try 1900+ (rare on receipts).
+    y2k = 2000 + year
+    if y2k - today.year > 1:
+        return 1900 + year
+    return y2k
+
+
+def _build_date(day: int, month: int, year: int, today: date) -> date | None:
+    try:
+        parsed = date(year, month, day)
+    except ValueError:
+        # US-style swap if day looks like a month
+        if day <= 12 and month <= 31:
+            try:
+                parsed = date(year, day, month)
+            except ValueError:
+                return None
+        else:
+            return None
+    # Reject future (allow +1 for timezone) and absurd past/future drift.
+    if parsed > today + timedelta(days=1):
+        return None
+    if abs((parsed - today).days) > 730:
+        return None
+    return parsed
+
+
+def parse_receipt_date_token(
+    day_s: str, month_s: str, year_s: str, *, today: date
+) -> date | None:
+    """Parse one DD.MM.YY / DD.MM.YYYY style token into a validated date."""
+    day, month = int(day_s), int(month_s)
+    year = _normalize_year(int(year_s), today)
+    return _build_date(day, month, year, today)
+
+
+def extract_receipt_date_from_text(text: str, today: date) -> date | None:
+    """Deterministic spend date from OCR text — printed receipt date, not upload day.
+
+    Prefer labeled lines (Datum/Date/…); else first plausible date in the header.
+    """
+    if not (text or "").strip():
+        return None
+    labeled = _DATE_LABELED.search(text)
+    if labeled:
+        got = parse_receipt_date_token(
+            labeled.group(1), labeled.group(2), labeled.group(3), today=today
+        )
+        if got is not None:
+            return got
+
+    header = text[:1200]
+    for match in _DE_DATE.finditer(header):
+        got = parse_receipt_date_token(
+            match.group(1), match.group(2), match.group(3), today=today
+        )
+        if got is not None:
+            return got
+
+    for match in _ISO_DATE.finditer(header):
+        try:
+            got = date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+        except ValueError:
+            continue
+        if got <= today + timedelta(days=1) and abs((got - today).days) <= 730:
+            return got
+    return None
+
+
+def _parse_spent_on(value: object, today: date) -> date | None:
+    """Parse ISO or German dates from model output. None if missing/invalid.
+
+    Does **not** fall back to today — that caused upload-date pollution.
+    """
     if value is None:
-        return today
+        return None
     text = str(value).strip()
-    parsed: date | None = None
+    if not text or text.lower() in {"null", "none", "unknown", "n/a"}:
+        return None
     if re.fullmatch(r"\d{4}-\d{2}-\d{2}", text[:10]):
         try:
             parsed = date.fromisoformat(text[:10])
         except ValueError:
             parsed = None
-    if parsed is None:
-        match = _DE_DATE.search(text)
-        if match:
-            day, month, year_s = match.groups()
-            year = int(year_s)
-            if year < 100:
-                year += 2000
-            try:
-                parsed = date(year, int(month), int(day))
-            except ValueError:
-                parsed = None
-    if parsed is None:
-        return today
-    # Reject dates more than ~2 years from today (model year hallucinations).
-    if abs((parsed - today).days) > 730:
-        return today
-    return parsed
+        else:
+            if abs((parsed - today).days) > 730 or parsed > today + timedelta(days=1):
+                return None
+            return parsed
+    match = _DE_DATE.search(text)
+    if match:
+        return parse_receipt_date_token(
+            match.group(1), match.group(2), match.group(3), today=today
+        )
+    return None
+
+
+def resolve_spent_on(
+    *,
+    llm_value: object,
+    ocr_text: str | None,
+    today: date,
+) -> tuple[date, str]:
+    """Pick spend date: OCR print first, then LLM, today only as last resort.
+
+    Returns (date, source) where source is ocr | llm | fallback.
+    """
+    ocr_date = extract_receipt_date_from_text(ocr_text or "", today)
+    llm_date = _parse_spent_on(llm_value, today)
+    if ocr_date is not None:
+        return ocr_date, "ocr"
+    if llm_date is not None:
+        return llm_date, "llm"
+    return today, "fallback"
 
 
 def _sanitize_category(raw: object) -> str:
@@ -196,7 +293,11 @@ def _coerce_items(raw: object, currency: str) -> list[dict[str, object]]:
 
 
 def _coerce_extract(
-    settings: Settings, raw: dict[str, object], today: date
+    settings: Settings,
+    raw: dict[str, object],
+    today: date,
+    *,
+    ocr_text: str | None = None,
 ) -> dict[str, object]:
     amount = Decimal("0.00")
     if raw.get("amount") is not None:
@@ -213,12 +314,23 @@ def _coerce_extract(
     if note.upper() in {"SUMME", "TOTAL", "GESAMTBETRAG", "NULL"}:
         note = ""
     items = _coerce_items(raw.get("items"), currency)
+    text = ocr_text if ocr_text is not None else str(raw.get("_ocr_text") or "")
+    spent_on, date_source = resolve_spent_on(
+        llm_value=raw.get("spent_on"),
+        ocr_text=text,
+        today=today,
+    )
+    if date_source == "fallback" and note:
+        note = f"{note}; date:unparsed"[:255]
+    elif date_source == "fallback":
+        note = "date:unparsed"
     return {
         "amount": amount,
         "currency": currency or settings.base_currency.upper(),
         "merchant": _sanitize_merchant(raw.get("merchant")),
         "category": _sanitize_category(raw.get("category")),
-        "spent_on": _parse_spent_on(raw.get("spent_on"), today),
+        "spent_on": spent_on,
+        "date_source": date_source,
         "note": note[:255],
         "items": items,
     }
@@ -282,9 +394,10 @@ async def extract_via_ollama_vision(
     today = datetime.now(ZoneInfo(settings.app_timezone)).date()
     b64 = base64.b64encode(image_bytes).decode("ascii")
     user_prompt = (
-        f"Today's date is {today.isoformat()}. "
+        f"Reference calendar date (do NOT use as spent_on unless printed): {today.isoformat()}. "
         "Read the receipt image. Extract amount (SUMME/total), currency, merchant, "
-        "category, spent_on, note, and items[] product lines. Return JSON only."
+        "category, spent_on from the PRINTED date only (or null), note, and items[]. "
+        "Return JSON only."
     )
     payload = {
         "model": model,
@@ -349,8 +462,10 @@ async def structure_text_with_ollama(settings: Settings, *, text: str) -> dict[s
     """Turn OCR text into expense JSON using the local chat model."""
     today = datetime.now(ZoneInfo(settings.app_timezone)).date()
     prompt = (
-        f"Today's date is {today.isoformat()}.\n"
-        f"Receipt text:\n{text[:6000]}\n\nReturn JSON only."
+        f"Reference calendar date (do NOT use as spent_on unless printed on the receipt): "
+        f"{today.isoformat()}.\n"
+        f"Receipt text:\n{text[:6000]}\n\n"
+        "spent_on must be the printed purchase/Datum date, or null. Return JSON only."
     )
     content = await ask_ollama(settings, prompt, _STRUCTURE_SYSTEM)
     return _parse_extract_json(content)
@@ -373,6 +488,7 @@ async def run_ocr_pipeline(
                 settings, image_bytes=image_bytes, privacy_on=privacy_on
             )
             raw = await structure_text_with_ollama(settings, text=text)
+            raw["_ocr_text"] = text
             return raw, None, "google_vision+ollama_structure"
         except (RuntimeError, httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
             logger.warning("Google Vision OCR failed: %s", exc)
@@ -520,6 +636,11 @@ async def finalize_receipt_ocr(*, expense_id: int) -> str | None:
         fields = _coerce_extract(settings, raw, today)
         if provider and not fields.get("note"):
             fields["note"] = f"ocr:{provider}"
+        elif provider and fields.get("date_source") == "fallback":
+            # Keep date:unparsed marker visible alongside provider tag.
+            note = str(fields.get("note") or "")
+            if "ocr:" not in note:
+                fields["note"] = f"ocr:{provider}; {note}".strip("; ")[:255]
     if warning and not fields.get("note"):
         fields["note"] = f"ocr:skipped:{warning[:200]}"
     elif warning:

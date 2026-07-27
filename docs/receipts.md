@@ -18,11 +18,17 @@ Ollama (`OLLAMA_MODEL`) to structure header + `items[]`. Local vision
 | `FEATURE_OCR_OLLAMA_VISION` | `false` | Local vision fallback |
 | `OLLAMA_VISION_MODEL` | empty | e.g. `minicpm-v` |
 
-## Pipeline
+## Spend date (critical)
 
-1. If privacy is off and Google flag + key are set → Google text → Ollama structure (with `items[]`).
-2. Else if local vision enabled → Ollama vision (weaker line items).
-3. Else → manual Pending fields.
+`spent_on` must be the **printed receipt date**, never the upload/OCR day.
+
+Resolution order (`app/services/receipts.py`):
+
+1. Deterministic parse of Google OCR text (`Datum` / `Date` / header `DD.MM.YY`)
+2. LLM `spent_on` if valid
+3. Last resort: today + note `date:unparsed` (Pending warns — fix before confirm)
+
+Existing rows already stored with upload dates stay wrong until edited or re-scanned.
 
 ## Portainer (good line-item quality)
 
