@@ -487,16 +487,15 @@ input:focus {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  flex: 1 1 auto;
   width: 100%;
   max-width: 3.25rem;
-  min-height: 0;
+  height: 8.5rem;
 }
 
 .trend-bar {
   display: block;
   width: 100%;
-  min-height: 4px;
+  min-height: 0.25rem;
   border-radius: 0.45rem 0.45rem 0.2rem 0.2rem;
   background: color-mix(in srgb, var(--ink-muted) 45%, var(--accent-soft));
 }

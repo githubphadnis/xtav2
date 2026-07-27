@@ -380,7 +380,13 @@ def insights_page(
 ) -> HTMLResponse:
     if not require_flag("FEATURE_TRENDS_UI", settings):
         raise HTTPException(status_code=404, detail="Insights disabled")
-    from app.services.insights import bar_share, build_pulse, format_delta, key_message
+    from app.services.insights import (
+        bar_height_rem,
+        bar_share,
+        build_pulse,
+        format_delta,
+        key_message,
+    )
 
     pulse = build_pulse(db, settings=settings)
     cat_ceiling = max((c.total for c in pulse.categories), default=Decimal(0))
@@ -398,6 +404,7 @@ def insights_page(
             format_delta=format_delta,
             key_message=key_message(pulse),
             bar_share=bar_share,
+            bar_height_rem=bar_height_rem,
             cat_ceiling=cat_ceiling,
             merch_ceiling=merch_ceiling,
             trend_ceiling=trend_ceiling,

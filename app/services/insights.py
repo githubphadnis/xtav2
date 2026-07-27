@@ -300,7 +300,16 @@ def key_message(pulse: InsightsPulse) -> str:
 
 
 def bar_share(total: Decimal, ceiling: Decimal) -> float:
-    """Width % for bar charts relative to the largest sibling (not grand total)."""
+    """Width/height % relative to the largest sibling (not grand total)."""
     if ceiling <= 0:
         return 0.0
     return round(float(total / ceiling * 100), 1)
+
+
+def bar_height_rem(total: Decimal, ceiling: Decimal, *, max_rem: float = 8.0) -> float:
+    """Absolute rem height for vertical bars (CSS % height collapses without fixed parent)."""
+    share = bar_share(total, ceiling)
+    # Keep a visible stub for zero so the column layout stays readable.
+    if share <= 0:
+        return 0.25
+    return round(max(0.35, max_rem * share / 100.0), 2)

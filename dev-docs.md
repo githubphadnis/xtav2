@@ -4,6 +4,9 @@
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-07-27 | Insights goals A–D one product, 4 phases | `docs/insights.md`; #20→#23 |
+| 2026-07-27 | Receipt spent_on from printed OCR, not upload day | Rule 15 + #24; agent_rules |
+| 2026-07-27 | Insights vertical bars use rem height not % | % height collapsed in flex layout |
 | 2026-07-26 | New repo `xtav2` (not evolve classic `xta` in place) | Clean cOcO Governed reboot; public goal; avoid carrying unfinished XTA debt |
 | 2026-07-26 | FastAPI + mobile-first HTML (HTMX/Tailwind path) | Matches house stack (XTA/monsoon/griham); Portainer-friendly; Cursor-friendly |
 | 2026-07-26 | Postgres | Matches XTA + monsoon on notcoolio; multi-user ready for public self-host |
@@ -18,7 +21,10 @@
 
 | Date | Error | Solution |
 |------|-------|----------|
+| 2026-07-27 | Insights 3-mo chart invisible | CSS `%` bar height → use `bar_height_rem` |
 | 2026-07-27 | Receipt dates = upload day | OCR `Datum` parse first; never silent today; #24 |
+| 2026-07-27 | CI fail after FX/bank | Pin ruff 0.16.x + lint cleanups |
+| 2026-07-27 | Ask “top expensive items” generic | Deterministic `top_expensive` + month window |
 | 2026-07-26 | `create_project` MCP git init failed (`spawn /bin/sh ENOENT` on Windows) | Created dir + `git init -b main` locally, then `move_agent_to_root` |
 | 2026-07-26 | Portainer: `No module named psycopg2` | Normalize DB URL to `postgresql+psycopg://` |
 | 2026-07-26 | Ask: whole-sentence ILIKE → total 0 | Tokenize NL queries; test exact user phrases first |
@@ -30,6 +36,7 @@
 - Cloud LLM as the only path for Q&A
 - Hardcoding `lenai` / ports in code — use env/config
 - Defaulting receipt `spent_on` to upload/OCR day when a printed date exists
+- CSS percentage heights on flex children for “charts” (use rem/px)
 - Duplicating domain logic in MCP vs HTTP — share services
 - Shipping after SQLite-only CI when prod is Postgres
 - Treating DNS/ping as proof that Ollama/model works

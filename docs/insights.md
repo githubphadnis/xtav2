@@ -1,7 +1,8 @@
-# Insights surface (product design)
+# Insights surface
 
-**Status:** Phase 1 shipped (`FEATURE_TRENDS_UI` → `/insights`)  
-**Tracks:** [#20](https://github.com/githubphadnis/xtav2/issues/20) analytics,
+**Status:** Phase 1 live behind `FEATURE_TRENDS_UI` → `/insights`  
+**Code:** `app/services/insights.py`, `app/templates/insights.html`, `app/static/app.css`  
+**Tracks:** [#20](https://github.com/githubphadnis/xtav2/issues/20) (pulse),
 [#22](https://github.com/githubphadnis/xtav2/issues/22) line-item categories,
 [#21](https://github.com/githubphadnis/xtav2/issues/21) geo,
 [#23](https://github.com/githubphadnis/xtav2/issues/23) Ask voice,
@@ -16,53 +17,38 @@
 | **C** | Where did €X go last week? | Ask + tap-through filters |
 | **D** | Habits I don’t notice | Line-item + merchant patterns (+ geo later) |
 
-One mobile **Insights** home (not four apps). Ask stays the dig tool; charts stay
-grounded in the **same Postgres aggregates** Ask tools use.
+## What Phase 1 shows today
+
+1. **Hero key message** — MoM comparator text (“You spent X more…”).
+2. **Ledger / Ask buttons** on hero and slices (not plain text links).
+3. **Rolling 3-month vertical bar chart** — oldest→newest; current month = MTD;
+   prior months = full calendar months. Peak labels = `format_money` + currency.
+   Tap column → ledger filtered to that window.
+4. **MTD vs same-days-last-month** detail cards.
+5. **Category + merchant** horizontal bars (no rank numbers).
+6. Aggregates use `amount_base` when multi-currency; same duplicate exclusion as Ask.
+
+### Chart implementation note (2026-07-27)
+
+Vertical bar **height must use absolute `rem`** (`bar_height_rem`), not CSS `%`.
+Percentage height on flex children collapsed to ~0 — looked like “no chart”.
+Fixed in the handoff commit; redeploy required to see bars.
 
 ## Phases
 
-### Phase 1 — Pulse (#20, `FEATURE_TRENDS_UI`) — **shipped**
-
-Answers **A** and enough of **C** for glanceable totals.
-
-- Route: `/insights` (nav when flag on)
-- This month MTD vs same days last month (`amount_base`)
-- Category + top merchants (month); CSS bar rows
-- Tap slice → filtered ledger (`/?category=&start=&end=`) or Ask preload (`/ask?q=`)
-- Aggregates in `app/services/insights.py` — same duplicate exclusion as `query_spend`
+### Phase 1 — Pulse (#20) — **shipped** (polish ongoing)
 
 ### Phase 2 — Coach (#23 + `FEATURE_SAVINGS_INSIGHTS`)
 
-Answers **B** with warmth (not cold charts alone).
-
-- 1–3 suggested cuts from real aggregates (“restaurants +18% MoM”)
-- Optional cloud LLM for tone; never invents amounts
-- Privacy local-only blocks cloud
+Answers **B** with warmth on real aggregates.
 
 ### Phase 3 — Habits (#22)
 
-Answers **D** at product level.
-
-- Categories on **line items** (auto + manual fix)
-- Visual: this month’s line-item category mix
-- Ask: “how much on chocolate / snacks?”
-
-Depends on solid Capture + confirm coverage (bank-only rows stay header-only).
+Line-item categories + visual mix. Needs solid OCR line-item coverage.
 
 ### Phase 4 — Place (#21, `FEATURE_GEO`)
 
-Extends **D** / travel **C**.
-
-- Prefer city/region from receipt text before map tiles
-- Geocoding optional; blocked when privacy local-only
-- Skip full map until city data exists on enough rows
-
-## Non-goals (for Insights v1)
-
-- Multi-widget BI dashboard
-- Separate analytics DB
-- LLM-invented charts
-- Geo as a day-one requirement
+City/region first; map later. Privacy-aware geocoding.
 
 ## Shared contract
 
@@ -72,4 +58,4 @@ Ask agent    ─┼─→ expense aggregate / breakdown services → Postgres
 MCP tools    ─┘
 ```
 
-Definition of done for any chart: same number as `query_spend` / MCP for that filter.
+DoD for any chart: same number as `query_spend` / MCP for that filter.

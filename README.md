@@ -34,6 +34,20 @@ Mobile browser ──► xtav2 (FastAPI) ──► Postgres
 All optional inputs (OCR, bank, email, savings) are **feature-flagged**.
 See `docs/feature-flags.md`, `docs/mcp.md`, `docs/deploy-portainer.md`.
 
+## Modules (flags)
+
+| Module | Flag | Entry |
+|--------|------|--------|
+| Ledger / Add | `FEATURE_MANUAL_ENTRY` | `/`, `/add` |
+| Capture / Pending | `FEATURE_RECEIPT_OCR` | `/capture`, `/pending` |
+| Ask | `FEATURE_OLLAMA_QA` | `/ask` |
+| Insights | `FEATURE_TRENDS_UI` | `/insights` |
+| Bank CSV | `FEATURE_BANK_IMPORT` | `/bank` (via Settings) |
+| MCP | `FEATURE_MCP` | stdio / SSE process |
+
+Design notes: `docs/insights.md`, `docs/receipts.md`, `docs/bank-reconcile.md`.  
+**Agent handoff:** start at `handover.md` + `BREADCRUMBS.md`.
+
 ## Deployment Steps
 
 1. Push to `main` → GitHub Actions builds `ghcr.io/githubphadnis/xtav2:main`

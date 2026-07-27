@@ -21,10 +21,10 @@
   <div class="trend-chart" role="img" aria-label="Rolling three-month spend in {{ pulse.currency }}">
     {% for m in pulse.trend_months %}
     <a class="trend-col" href="/?start={{ m.start }}&amp;end={{ m.end }}">
-      <span class="trend-peak">{{ format_money(m.total) }}</span>
+      <span class="trend-peak">{{ format_money(m.total) }} {{ pulse.currency }}</span>
       <span class="trend-bar-wrap">
         <span class="trend-bar {% if loop.last %}is-current{% endif %}"
-              style="height: {{ bar_share(m.total, trend_ceiling) }}%"></span>
+              style="height: {{ bar_height_rem(m.total, trend_ceiling) }}rem"></span>
       </span>
       <span class="trend-label">{{ m.label }}</span>
       <span class="trend-meta">{{ m.count }} tx</span>
