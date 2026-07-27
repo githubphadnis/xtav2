@@ -1,10 +1,9 @@
 ﻿# Breadcrumbs — xtav2
 
-## Session: 2026-07-27 (insights design)
+## Session: 2026-07-27 (Insights Phase 1)
 
-- **Work done:** Product decision — Insights goals A–D all in scope; design note
-  `docs/insights.md`; ROADMAP phased; issues #20–#22 to be updated with A–D acceptance.
-  No UI implementation.
-- **Prior:** #17 bank import pushed (`f9502aa`); Portainer `FEATURE_BANK_IMPORT=true`.
-- **Next:** Smoke bank import on live; then Phase 1 Insights (#20) when ready to build.
-- **Open:** #9 parked, #14, #15, #17 verify, #20–#23.
+- **Work done:** Pushed insights design (`f61a534`); built Phase 1 `/insights`
+  (`FEATURE_TRENDS_UI`) — MoM, category/merchant bars, ledger + Ask tap-through.
+- **Next:** Redeploy; Portainer `FEATURE_TRENDS_UI=true` (and bank flag if wanted);
+  smoke Insights on live. Then Phase 2 coach (#23) when ready.
+- **Open:** #9 parked, #14, #15, #17 verify, #20 close after smoke, #21–#23.

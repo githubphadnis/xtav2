@@ -36,7 +36,7 @@
 | [#16](https://github.com/githubphadnis/xtav2/issues/16) | Duplicate detection — **shipped** |
 | [#17](https://github.com/githubphadnis/xtav2/issues/17) | Bank↔receipt reconcile + enrich line items |
 | [#19](https://github.com/githubphadnis/xtav2/issues/19) | Multi-currency FX — **shipped** |
-| [#20](https://github.com/githubphadnis/xtav2/issues/20) | Spend analytics / trends UI |
+| [#20](https://github.com/githubphadnis/xtav2/issues/20) | Insights Phase 1 pulse — **shipped** (enable `FEATURE_TRENDS_UI`) |
 | [#21](https://github.com/githubphadnis/xtav2/issues/21) | Geographic spend map |
 | [#22](https://github.com/githubphadnis/xtav2/issues/22) | Line-item categories + visual breakdown |
 | [#23](https://github.com/githubphadnis/xtav2/issues/23) | Optional public/cloud LLM for Ask |

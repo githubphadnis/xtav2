@@ -7,17 +7,18 @@
 ## Current State / WIP
 
 - **Live:** https://xta.pphadnis.com/
-- **#17 bank import** on `main` (`f9502aa`) — enable `FEATURE_BANK_IMPORT` in Portainer.
-- **Insights:** goals A–D all wanted; design in `docs/insights.md` (Phases 1–4). No UI yet.
+- **#17 bank import** on `main` — `FEATURE_BANK_IMPORT=true` in Portainer to use.
+- **#20 Insights Phase 1** built — `/insights` behind `FEATURE_TRENDS_UI` (default off).
+- Later Insights: Phase 2 #23, Phase 3 #22, Phase 4 #21 (`docs/insights.md`).
 
 ## Broken Things / Known gaps
 
-- Ask tone still hit-and-miss on local Ollama — tracked as #23 (cloud LLM option).
-- #17 needs Portainer flag + real CSV smoke before closing the issue.
+- Ask tone still hit-and-miss — Phase 2 / #23.
+- #17 / #20 need Portainer flag smoke before closing issues.
 
 ## Next Immediate Steps
 
-1. Portainer: pull new image; `FEATURE_BANK_IMPORT=true`; smoke CSV + receipt enrich.
-2. When building Insights: start Phase 1 (#20) per `docs/insights.md`.
-3. Phase 2 (#23 + savings) for “what to cut” with warmer voice.
-4. Phases 3–4 (#22, #21) after line-item / city data is rich enough.
+1. Redeploy GHCR image after push.
+2. Portainer: `FEATURE_TRENDS_UI=true` (+ `FEATURE_BANK_IMPORT=true` if using bank).
+3. Smoke `/insights` + tap category → ledger.
+4. Phase 2 when ready (#23 + savings hints).

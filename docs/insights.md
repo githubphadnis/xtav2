@@ -1,6 +1,6 @@
 # Insights surface (product design)
 
-**Status:** design only — no UI yet  
+**Status:** Phase 1 shipped (`FEATURE_TRENDS_UI` → `/insights`)  
 **Tracks:** [#20](https://github.com/githubphadnis/xtav2/issues/20) analytics,
 [#22](https://github.com/githubphadnis/xtav2/issues/22) line-item categories,
 [#21](https://github.com/githubphadnis/xtav2/issues/21) geo,
@@ -21,14 +21,15 @@ grounded in the **same Postgres aggregates** Ask tools use.
 
 ## Phases
 
-### Phase 1 — Pulse (#20, `FEATURE_TRENDS_UI`)
+### Phase 1 — Pulse (#20, `FEATURE_TRENDS_UI`) — **shipped**
 
 Answers **A** and enough of **C** for glanceable totals.
 
-- This month total vs last month (base currency)
-- Category breakdown (month)
-- Top merchants (month)
-- Tap slice → filtered ledger **or** Ask with preloaded question + aggregate
+- Route: `/insights` (nav when flag on)
+- This month MTD vs same days last month (`amount_base`)
+- Category + top merchants (month); CSS bar rows
+- Tap slice → filtered ledger (`/?category=&start=&end=`) or Ask preload (`/ask?q=`)
+- Aggregates in `app/services/insights.py` — same duplicate exclusion as `query_spend`
 
 ### Phase 2 — Coach (#23 + `FEATURE_SAVINGS_INSIGHTS`)
 

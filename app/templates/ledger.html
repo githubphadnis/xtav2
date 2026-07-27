@@ -2,7 +2,13 @@
 {% block title %}Ledger · xtav2{% endblock %}
 {% block content %}
 <h1 class="page-title">Ledger</h1>
-<p class="page-lead">Recent posted expenses. Ask totals use {{ settings.base_currency }}.</p>
+<p class="page-lead">
+  {% if filter_label %}
+  Filtered: {{ filter_label }}. <a href="/">Clear</a>
+  {% else %}
+  Recent posted expenses. Ask totals use {{ settings.base_currency }}.
+  {% endif %}
+</p>
 
 {% if expenses %}
 <ul class="list">

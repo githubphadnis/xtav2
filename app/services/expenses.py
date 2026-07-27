@@ -570,6 +570,8 @@ def list_expenses(
     merchant: str | None = None,
     q: str | None = None,
     status: str | None = "posted",
+    start: date | None = None,
+    end: date | None = None,
 ) -> list[Expense]:
     """Return recent expenses with optional filters (default: posted only)."""
     stmt: Select[tuple[Expense]] = select(Expense).order_by(
@@ -578,9 +580,21 @@ def list_expenses(
     if status is not None:
         stmt = stmt.where(Expense.status == status)
     if category:
-        stmt = stmt.where(Expense.category.ilike(category.strip()))
+        cat = category.strip()
+        if cat.lower() == "uncategorized":
+            stmt = stmt.where(or_(Expense.category == "", Expense.category.is_(None)))
+        else:
+            stmt = stmt.where(Expense.category.ilike(cat))
     if merchant:
-        stmt = stmt.where(Expense.merchant.ilike(f"%{merchant.strip()}%"))
+        merch = merchant.strip()
+        if merch.lower() == "unknown merchant":
+            stmt = stmt.where(or_(Expense.merchant == "", Expense.merchant.is_(None)))
+        else:
+            stmt = stmt.where(Expense.merchant.ilike(f"%{merch}%"))
+    if start is not None:
+        stmt = stmt.where(Expense.spent_on >= start)
+    if end is not None:
+        stmt = stmt.where(Expense.spent_on <= end)
     text_clause = _text_match_clause(q) if q else None
     if text_clause is not None:
         stmt = stmt.where(text_clause)

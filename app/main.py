@@ -9,6 +9,8 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from urllib.parse import quote
+
 from fastapi import (
     BackgroundTasks,
     Depends,
@@ -47,6 +49,7 @@ TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals["format_money"] = format_money
+templates.env.filters["urlencode"] = lambda value: quote(str(value), safe="")
 
 
 def today_iso(settings: Settings) -> str:
@@ -230,12 +233,45 @@ async def health_ollama(settings: Settings = Depends(get_settings)) -> dict[str,
 @app.get("/", response_class=HTMLResponse)
 def home(
     request: Request,
+    category: str | None = None,
+    merchant: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> HTMLResponse:
+    start_d: date | None = None
+    end_d: date | None = None
+    try:
+        if start:
+            start_d = date.fromisoformat(start)
+        if end:
+            end_d = date.fromisoformat(end)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid date filter") from exc
+
     expenses = (
-        expense_service.list_expenses(db, limit=50) if settings.feature_manual_entry else []
+        expense_service.list_expenses(
+            db,
+            limit=50,
+            category=category,
+            merchant=merchant,
+            start=start_d,
+            end=end_d,
+        )
+        if settings.feature_manual_entry
+        else []
     )
+    filter_bits = []
+    if category:
+        filter_bits.append(f"category={category}")
+    if merchant:
+        filter_bits.append(f"merchant={merchant}")
+    if start_d:
+        filter_bits.append(f"from {start_d}")
+    if end_d:
+        filter_bits.append(f"to {end_d}")
+    filter_label = " · ".join(filter_bits) if filter_bits else None
     return templates.TemplateResponse(
         request,
         "ledger.html",
@@ -245,6 +281,7 @@ def home(
             settings=settings,
             active="ledger",
             expenses=expenses,
+            filter_label=filter_label,
         ),
     )
 
@@ -317,6 +354,7 @@ def pending_page(
 @app.get("/ask", response_class=HTMLResponse)
 def ask_page(
     request: Request,
+    q: str | None = None,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> HTMLResponse:
@@ -325,7 +363,38 @@ def ask_page(
     return templates.TemplateResponse(
         request,
         "ask.html",
-        _page_context(request=request, db=db, settings=settings, active="ask"),
+        _page_context(
+            request=request,
+            db=db,
+            settings=settings,
+            active="ask",
+            question=q or "",
+        ),
+    )
+
+
+@app.get("/insights", response_class=HTMLResponse)
+def insights_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> HTMLResponse:
+    if not require_flag("FEATURE_TRENDS_UI", settings):
+        raise HTTPException(status_code=404, detail="Insights disabled")
+    from app.services.insights import build_pulse, format_delta
+
+    pulse = build_pulse(db, settings=settings)
+    return templates.TemplateResponse(
+        request,
+        "insights.html",
+        _page_context(
+            request=request,
+            db=db,
+            settings=settings,
+            active="insights",
+            pulse=pulse,
+            format_delta=format_delta,
+        ),
     )
 
 

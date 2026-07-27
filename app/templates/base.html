@@ -53,6 +53,12 @@
         Ask
       </a>
       {% endif %}
+      {% if settings.feature_trends_ui %}
+      <a href="/insights" class="{% if active == 'insights' %}is-active{% endif %}">
+        <span class="icon" aria-hidden="true">◈</span>
+        Insights
+      </a>
+      {% endif %}
       <a href="/settings" class="{% if active == 'settings' %}is-active{% endif %}">
         <span class="icon" aria-hidden="true">⚙</span>
         Settings

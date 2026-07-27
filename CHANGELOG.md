@@ -7,10 +7,11 @@ versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- **Insights Phase 1** ([#20](https://github.com/githubphadnis/xtav2/issues/20), `FEATURE_TRENDS_UI`):
+  `/insights` MoM pulse, category + merchant bars; tap → ledger filter or Ask preload.
 - **Bank CSV import + reconcile** ([#17](https://github.com/githubphadnis/xtav2/issues/17), `FEATURE_BANK_IMPORT`):
   `/bank` upload; link bank↔receipt on one row; enrich line items on confirm; Ask counts once.
-- Roadmap issues (no build yet): spend analytics [#20], geo map [#21], line-item categories [#22],
-  optional cloud LLM for Ask [#23].
+- Insights design `docs/insights.md`; later phases: geo [#21], line-item cats [#22], cloud LLM [#23].
 - Multi-screen mobile UI (Ledger / Add / Capture / Pending / Ask / Settings) with bottom nav.
 - Privacy toggle (`PRIVACY_LOCAL_ONLY` + Settings UI) — blocks Google Vision when on.
 - Optional Google Vision OCR path (`FEATURE_OCR_GOOGLE_VISION` + `GOOGLE_VISION_API_KEY`).
