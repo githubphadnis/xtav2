@@ -4,6 +4,10 @@
 <h1 class="page-title">Pending</h1>
 <p class="page-lead">Confirm OCR drafts before they count in Ask.</p>
 
+{% if processing_count %}
+<div class="flash">Still parsing: {{ processing_count }} — refresh shortly; they show up here when ready.</div>
+{% endif %}
+
 {% if pending %}
 <ul class="list">
   {% for e in pending %}

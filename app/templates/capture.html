@@ -2,7 +2,11 @@
 {% block title %}Capture · xtav2{% endblock %}
 {% block content %}
 <h1 class="page-title">Capture receipt</h1>
-<p class="page-lead">Photo or gallery → pending draft for review.</p>
+<p class="page-lead">Photo or gallery → OCR runs in the background → Pending when ready.</p>
+
+{% if processing_count %}
+<div class="flash">OCR in progress: {{ processing_count }} receipt{{ 's' if processing_count != 1 else '' }}…</div>
+{% endif %}
 
 <form method="post" action="/receipts/upload" enctype="multipart/form-data">
   <label class="field">

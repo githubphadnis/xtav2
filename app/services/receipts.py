@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 import httpx
 from sqlalchemy.orm import Session
 
-from app.config import Settings
+from app.config import Settings, get_settings
 from app.integrations.ollama import ask_ollama, list_models
 from app.models import Expense
 from app.services import expenses as expense_service
@@ -403,10 +403,102 @@ async def create_pending_from_upload(
     content_type: str,
     filename: str | None,
 ) -> tuple[Expense, str | None]:
-    """Save image, optionally OCR, create pending expense. Returns (row, warning)."""
+    """Legacy sync path: save + OCR + pending in one call (tests / tooling)."""
+    row = enqueue_receipt_upload(
+        db,
+        settings=settings,
+        data=data,
+        content_type=content_type,
+        filename=filename,
+    )
+    warning = await finalize_receipt_ocr(expense_id=row.id)
+    # Re-load after finalize
+    db.refresh(row)
+    return row, warning
+
+
+def enqueue_receipt_upload(
+    db: Session,
+    *,
+    settings: Settings,
+    data: bytes,
+    content_type: str,
+    filename: str | None,
+) -> Expense:
+    """Save image and create a processing row — no OCR yet (fast path for Capture)."""
     relative = save_receipt_bytes(
         settings, data=data, content_type=content_type, filename=filename
     )
+    today = datetime.now(ZoneInfo(settings.app_timezone)).date()
+    return expense_service.add_expense(
+        db,
+        settings=settings,
+        spent_on=today,
+        amount=Decimal("0.00"),
+        currency=settings.base_currency.upper(),
+        merchant="",
+        category="receipt",
+        note="ocr:queued",
+        source="receipt",
+        status="processing",
+        receipt_path=relative,
+    )
+
+
+async def finalize_receipt_ocr(*, expense_id: int) -> str | None:
+    """Run OCR for a processing expense and flip it to pending. Safe to retry."""
+    from app.db import get_session_factory
+
+    settings = get_settings()
+    SessionLocal = get_session_factory()
+
+    with SessionLocal() as db:
+        row = db.get(Expense, expense_id)
+        if row is None:
+            return "Expense not found"
+        if row.status != "processing":
+            return None
+        if not row.receipt_path:
+            expense_service.update_expense(
+                db,
+                settings=settings,
+                expense_id=expense_id,
+                spent_on=row.spent_on,
+                amount=row.amount,
+                currency=row.currency,
+                merchant=row.merchant,
+                category=row.category,
+                note="ocr:missing_file",
+                status="pending",
+            )
+            return "Missing receipt file"
+        path = upload_root(settings) / row.receipt_path
+        if not path.is_file():
+            expense_service.update_expense(
+                db,
+                settings=settings,
+                expense_id=expense_id,
+                spent_on=row.spent_on,
+                amount=row.amount,
+                currency=row.currency,
+                merchant=row.merchant,
+                category=row.category,
+                note="ocr:missing_file",
+                status="pending",
+            )
+            return "Missing receipt file"
+        data = path.read_bytes()
+        suffix = path.suffix.lower()
+        content_type = {
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+            ".webp": "image/webp",
+            ".heic": "image/heic",
+        }.get(suffix, "image/jpeg")
+        privacy_on = settings_store.privacy_local_only(db, settings)
+        google_ok = settings_store.google_vision_allowed(db, settings)
+
     today = datetime.now(ZoneInfo(settings.app_timezone)).date()
     fields: dict[str, object] = {
         "amount": Decimal("0.00"),
@@ -417,8 +509,6 @@ async def create_pending_from_upload(
         "note": "",
         "items": [],
     }
-    privacy_on = settings_store.privacy_local_only(db, settings)
-    google_ok = settings_store.google_vision_allowed(db, settings)
     raw, warning, provider = await run_ocr_pipeline(
         settings,
         image_bytes=data,
@@ -430,26 +520,33 @@ async def create_pending_from_upload(
         fields = _coerce_extract(settings, raw, today)
         if provider and not fields.get("note"):
             fields["note"] = f"ocr:{provider}"
+    if warning and not fields.get("note"):
+        fields["note"] = f"ocr:skipped:{warning[:200]}"
+    elif warning:
+        fields["note"] = f"{fields['note']}; {warning}"[:255]
 
-    row = expense_service.add_expense(
-        db,
-        settings=settings,
-        spent_on=fields["spent_on"],  # type: ignore[arg-type]
-        amount=fields["amount"],  # type: ignore[arg-type]
-        currency=str(fields["currency"]),
-        merchant=str(fields["merchant"]),
-        category=str(fields["category"]),
-        note=str(fields["note"]),
-        source="receipt",
-        status="pending",
-        receipt_path=relative,
-    )
-    items = fields.get("items") or []
-    if settings.feature_line_items and isinstance(items, list) and items:
-        expense_service.replace_line_items(
+    with SessionLocal() as db:
+        row = db.get(Expense, expense_id)
+        if row is None or row.status != "processing":
+            return warning
+        expense_service.update_expense(
             db,
-            expense_id=row.id,
-            items=items,  # type: ignore[arg-type]
+            settings=settings,
+            expense_id=expense_id,
+            spent_on=fields["spent_on"],  # type: ignore[arg-type]
+            amount=fields["amount"],  # type: ignore[arg-type]
             currency=str(fields["currency"]),
+            merchant=str(fields["merchant"]),
+            category=str(fields["category"]),
+            note=str(fields["note"]),
+            status="pending",
         )
-    return row, warning
+        items = fields.get("items") or []
+        if settings.feature_line_items and isinstance(items, list) and items:
+            expense_service.replace_line_items(
+                db,
+                expense_id=expense_id,
+                items=items,  # type: ignore[arg-type]
+                currency=str(fields["currency"]),
+            )
+    return warning

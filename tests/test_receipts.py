@@ -143,6 +143,38 @@ def test_coerce_sanitizes_bad_vision_fields() -> None:
     assert de["category"] == "groceries"
 
 
+def test_async_enqueue_then_finalize() -> None:
+    import asyncio
+
+    from app.services.receipts import enqueue_receipt_upload, finalize_receipt_ocr
+
+    settings = get_settings()
+    SessionLocal = get_session_factory()
+    data = b"\xff\xd8\xff\xe0" + b"\x00" * 64
+
+    with SessionLocal() as db:
+        row = enqueue_receipt_upload(
+            db,
+            settings=settings,
+            data=data,
+            content_type="image/jpeg",
+            filename="fast.jpg",
+        )
+        assert row.status == "processing"
+        assert expense_service.count_expenses(db, status="processing") == 1
+        assert expense_service.list_pending(db) == []
+        eid = row.id
+
+    asyncio.run(finalize_receipt_ocr(expense_id=eid))
+
+    with SessionLocal() as db:
+        assert expense_service.count_expenses(db, status="processing") == 0
+        pending = expense_service.list_pending(db)
+        assert len(pending) == 1
+        assert pending[0].id == eid
+        assert pending[0].status == "pending"
+
+
 def test_line_items_and_ask_query() -> None:
     os.environ["FEATURE_LINE_ITEMS"] = "true"
     get_settings.cache_clear()

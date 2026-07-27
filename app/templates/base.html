@@ -44,7 +44,7 @@
       </a>
       <a href="/pending" class="{% if active == 'pending' %}is-active{% endif %}">
         <span class="icon" aria-hidden="true">◌</span>
-        Pending{% if pending_count %}<span class="badge">{{ pending_count }}</span>{% endif %}
+        Pending{% if pending_count %}<span class="badge">{{ pending_count }}</span>{% endif %}{% if processing_count %}<span class="badge" style="background:var(--ink-muted)">{{ processing_count }}</span>{% endif %}
       </a>
       {% endif %}
       {% if settings.feature_ollama_qa %}

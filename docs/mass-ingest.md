@@ -8,7 +8,13 @@
 Capture today runs **OCR in the HTTP request**. Rapid scanning stacks long Google/Ollama
 calls, the UI feels jammed, and Pending mixes “still processing” with “ready to review.”
 
-## Target flow
+## Capture (interactive)
+
+Upload returns immediately: image is stored with status ``processing``, OCR runs in
+a background task, then the row becomes ``pending`` for confirm. Stuck ``processing``
+rows are re-queued on app startup. Rapid scanning no longer blocks the UI on OCR.
+
+## Target mass-ingest flow
 
 ```mermaid
 flowchart LR

@@ -333,8 +333,19 @@ def list_expenses(
 
 
 def list_pending(db: Session, *, limit: int = 50) -> list[Expense]:
-    """Return pending receipt drafts newest first."""
+    """Return pending receipt drafts newest first (OCR complete, awaiting confirm)."""
     return list_expenses(db, limit=limit, status="pending")
+
+
+def list_processing(db: Session, *, limit: int = 100) -> list[Expense]:
+    """Return receipts still in the OCR spool (not yet in Pending)."""
+    return list_expenses(db, limit=limit, status="processing")
+
+
+def count_expenses(db: Session, *, status: str) -> int:
+    """Count expenses with a given status."""
+    stmt = select(func.count(Expense.id)).where(Expense.status == status)
+    return int(db.scalar(stmt) or 0)
 
 
 def query_spend(

@@ -9,20 +9,24 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
-from app.db import get_db, init_db
+from app.db import get_db, get_session_factory, init_db
 from app.features import flag_snapshot, require_flag
 from app.integrations.ollama import ask_ollama, list_models
 from app.services import expenses as expense_service
 from app.services import settings_store
 from app.services.expenses import format_money
-from app.services.receipts import create_pending_from_upload, upload_root
+from app.services.receipts import (
+    enqueue_receipt_upload,
+    finalize_receipt_ocr,
+    upload_root,
+)
 
 settings = get_settings()
 logging.basicConfig(level=getattr(logging, settings.app_log_level.upper(), logging.INFO))
@@ -51,6 +55,11 @@ def _page_context(
     pending = (
         expense_service.list_pending(db, limit=20) if settings.feature_receipt_ocr else []
     )
+    processing_count = (
+        expense_service.count_expenses(db, status="processing")
+        if settings.feature_receipt_ocr
+        else 0
+    )
     line_items_by_expense: dict[int, list] = {}
     if settings.feature_line_items:
         for e in pending:
@@ -61,6 +70,7 @@ def _page_context(
         "request": request,
         "active": active,
         "pending_count": len(pending),
+        "processing_count": processing_count,
         "pending": pending,
         "line_items_by_expense": line_items_by_expense,
         "privacy_local_only": privacy,
@@ -74,11 +84,42 @@ def _page_context(
     return ctx
 
 
+async def _ocr_background(expense_id: int) -> None:
+    try:
+        warning = await finalize_receipt_ocr(expense_id=expense_id)
+        if warning:
+            logger.info("OCR finished for #%s with warning: %s", expense_id, warning)
+        else:
+            logger.info("OCR finished for #%s → pending", expense_id)
+    except Exception:
+        logger.exception("OCR background job failed for #%s", expense_id)
+
+
+async def _requeue_stuck_processing() -> None:
+    """After restart, resume OCR for rows still marked processing."""
+    import asyncio
+
+    await asyncio.sleep(1.5)
+    try:
+        SessionLocal = get_session_factory()
+        with SessionLocal() as db:
+            stuck = expense_service.list_processing(db, limit=100)
+            ids = [row.id for row in stuck]
+        for expense_id in ids:
+            logger.info("Re-queueing stuck OCR job #%s", expense_id)
+            await _ocr_background(expense_id)
+    except Exception:
+        logger.exception("Failed to requeue stuck OCR jobs")
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    import asyncio
+
     logger.info("Initialising database schema")
     init_db()
     upload_root(settings)
+    asyncio.create_task(_requeue_stuck_processing())
     yield
 
 
@@ -185,15 +226,28 @@ def add_page(
 @app.get("/capture", response_class=HTMLResponse)
 def capture_page(
     request: Request,
+    queued: int | None = None,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> HTMLResponse:
     if not require_flag("FEATURE_RECEIPT_OCR", settings):
         raise HTTPException(status_code=404, detail="Receipt capture disabled")
+    flash = None
+    if queued is not None:
+        flash = (
+            f"Queued #{queued} for OCR — keep scanning. "
+            "It appears under Pending when parsing finishes."
+        )
     return templates.TemplateResponse(
         request,
         "capture.html",
-        _page_context(request=request, db=db, settings=settings, active="capture"),
+        _page_context(
+            request=request,
+            db=db,
+            settings=settings,
+            active="capture",
+            flash=flash,
+        ),
     )
 
 
@@ -308,16 +362,16 @@ def remove_expense(
 
 @app.post("/receipts/upload")
 async def upload_receipt(
-    request: Request,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
-) -> HTMLResponse:
+) -> RedirectResponse:
     if not require_flag("FEATURE_RECEIPT_OCR", settings):
         raise HTTPException(status_code=404, detail="Receipt capture disabled")
     data = await file.read()
     try:
-        row, warning = await create_pending_from_upload(
+        row = enqueue_receipt_upload(
             db,
             settings=settings,
             data=data,
@@ -327,20 +381,8 @@ async def upload_receipt(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    flash = f"Receipt saved as pending #{row.id}."
-    if warning:
-        flash = f"{flash} OCR skipped: {warning}"
-    return templates.TemplateResponse(
-        request,
-        "pending.html",
-        _page_context(
-            request=request,
-            db=db,
-            settings=settings,
-            active="pending",
-            flash=flash,
-        ),
-    )
+    background_tasks.add_task(_ocr_background, row.id)
+    return RedirectResponse(url=f"/capture?queued={row.id}", status_code=303)
 
 
 @app.post("/expenses/{expense_id}/confirm")
