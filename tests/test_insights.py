@@ -14,7 +14,7 @@ os.environ["BASE_CURRENCY"] = "EUR"
 from app.config import get_settings
 from app.db import get_session_factory, init_db
 from app.services import expenses as expense_service
-from app.services.insights import build_pulse, month_windows, period_total, rolling_month_windows
+from app.services.insights import build_pulse, month_windows, period_total
 
 get_settings.cache_clear()
 
@@ -36,12 +36,20 @@ def test_month_windows_like_for_like() -> None:
     assert last_end == date(2026, 6, 27)
 
 
+def test_rolling_three_months_full_priors_mtd_current() -> None:
+    windows = rolling_month_windows(date(2026, 7, 27), months=3)
+    assert len(windows) == 3
+    assert windows[0] == (date(2026, 5, 1), date(2026, 5, 31), "May")
+    assert windows[1] == (date(2026, 6, 1), date(2026, 6, 30), "Jun")
+    assert windows[2] == (date(2026, 7, 1), date(2026, 7, 27), "Jul")
+
+
 def test_bar_height_rem_scales_and_avoids_zero_collapse() -> None:
     from app.services.insights import bar_height_rem
 
-    assert bar_height_rem(Decimal("0"), Decimal("100")) == 0.25
-    assert bar_height_rem(Decimal("100"), Decimal("100"), max_rem=8.0) == 8.0
-    assert bar_height_rem(Decimal("50"), Decimal("100"), max_rem=8.0) == 4.0
+    assert bar_height_rem(Decimal(0), Decimal(100)) == 0.25
+    assert bar_height_rem(Decimal(100), Decimal(100), max_rem=8.0) == 8.0
+    assert bar_height_rem(Decimal(50), Decimal(100), max_rem=8.0) == 4.0
 
 
 def test_pulse_matches_query_spend() -> None:
