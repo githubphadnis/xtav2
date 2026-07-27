@@ -10,8 +10,15 @@
   <li class="item">
     <div>
       <p class="item-title">{{ e.merchant or e.category or "Expense" }}</p>
-      <p class="item-meta">{{ e.spent_on }} · {{ e.category }}</p>
+      <p class="item-meta">{{ e.spent_on }} · {{ e.category }}{% if e.source and e.source != 'manual' %} · {{ e.source }}{% endif %}</p>
       {% if e.note %}<p class="item-meta">{{ e.note }}</p>{% endif %}
+      {% if e.bank_ref and e.receipt_path %}
+      <p class="item-meta">Bank + receipt linked</p>
+      {% elif e.bank_ref %}
+      <p class="item-meta">Bank only — scan receipt to enrich</p>
+      {% elif e.receipt_path %}
+      <p class="item-meta">Receipt</p>
+      {% endif %}
       {% if e.duplicate_of_id and not e.duplicate_dismissed %}
       <p class="dup-warn">Possible duplicate of #{{ e.duplicate_of_id }}</p>
       <form method="post" action="/expenses/{{ e.id }}/dismiss-duplicate" style="margin-top:0.35rem">

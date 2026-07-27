@@ -38,6 +38,7 @@ class Expense(Base):
     source: Mapped[str] = mapped_column(String(64), default="manual")
     status: Mapped[str] = mapped_column(String(32), default="posted", index=True)
     receipt_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    bank_ref: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     fingerprint: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     duplicate_of_id: Mapped[int | None] = mapped_column(
         ForeignKey("expenses.id", ondelete="SET NULL"), nullable=True, index=True

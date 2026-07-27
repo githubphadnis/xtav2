@@ -2,25 +2,23 @@
 
 ## Last Worked On Date
 
-2026-07-26
+2026-07-27
 
 ## Current State / WIP
 
 - **Live:** https://xta.pphadnis.com/
-- Line items + Google-primary OCR on `main` — pull image + set Portainer env
-- Next product: mass upload (#9)
+- **#17 bank import** implemented on working tree (not necessarily pushed): CSV → create
+  or link; receipt confirm enriches bank row. Flag `FEATURE_BANK_IMPORT` (default off).
+- Roadmap queued: #20 analytics, #21 geo, #22 line-item cats, #23 optional public LLM.
 
-## Broken Things
+## Broken Things / Known gaps
 
-- Ask matches printed product text (e.g. German `Schokolade`), not English synonyms yet
+- Ask tone still hit-and-miss on local Ollama — tracked as #23 (cloud LLM option).
+- #17 needs Portainer flag + real CSV smoke before closing the issue.
 
 ## Next Immediate Steps
 
-1. Portainer env (see docs/receipts.md):
-   - `FEATURE_OCR_GOOGLE_VISION=true`
-   - `GOOGLE_VISION_API_KEY=<from wdmmgv2 GCLOUD_VISION_API_KEY>`
-   - `PRIVACY_LOCAL_ONLY=false`
-   - `FEATURE_LINE_ITEMS=true`
-2. Settings: privacy off; Google Vision effective = yes
-3. Recapture receipt → confirm line items → Ask product question
-4. Start #9 mass upload
+1. Commit/push when ready; redeploy GHCR image.
+2. Portainer: `FEATURE_BANK_IMPORT=true` → Settings → Import bank CSV.
+3. Smoke: bank-only row → Capture matching receipt → Confirm → one ledger row with line items.
+4. Decide on #23 (OpenAI/Anthropic behind privacy toggle) vs tuning lenai (#15).

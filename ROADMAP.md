@@ -36,6 +36,10 @@
 | [#16](https://github.com/githubphadnis/xtav2/issues/16) | Duplicate detection — **shipped** |
 | [#17](https://github.com/githubphadnis/xtav2/issues/17) | Bank↔receipt reconcile + enrich line items |
 | [#19](https://github.com/githubphadnis/xtav2/issues/19) | Multi-currency FX — **shipped** |
+| [#20](https://github.com/githubphadnis/xtav2/issues/20) | Spend analytics / trends UI |
+| [#21](https://github.com/githubphadnis/xtav2/issues/21) | Geographic spend map |
+| [#22](https://github.com/githubphadnis/xtav2/issues/22) | Line-item categories + visual breakdown |
+| [#23](https://github.com/githubphadnis/xtav2/issues/23) | Optional public/cloud LLM for Ask |
 
 ### Closed (V1.0 / V1.1 partial)
 
@@ -78,6 +82,11 @@
 
 ## V2.0 — Insights surface
 
-- Historical trends UI
-- Geospatial spend map
+- Historical trends / spend analytics UI ([#20](https://github.com/githubphadnis/xtav2/issues/20), `FEATURE_TRENDS_UI`)
+- Geospatial spend map from addresses/cities ([#21](https://github.com/githubphadnis/xtav2/issues/21), `FEATURE_GEO`)
+- Line-item category breakdown visuals ([#22](https://github.com/githubphadnis/xtav2/issues/22))
 - Tax/export packs
+
+## Ask quality (cross-cutting)
+
+- Optional public/cloud LLM beside Ollama ([#23](https://github.com/githubphadnis/xtav2/issues/23)) — compare warmth/quality; privacy toggle must block cloud when local-only

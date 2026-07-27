@@ -7,6 +7,10 @@ versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- **Bank CSV import + reconcile** ([#17](https://github.com/githubphadnis/xtav2/issues/17), `FEATURE_BANK_IMPORT`):
+  `/bank` upload; link bank↔receipt on one row; enrich line items on confirm; Ask counts once.
+- Roadmap issues (no build yet): spend analytics [#20], geo map [#21], line-item categories [#22],
+  optional cloud LLM for Ask [#23].
 - Multi-screen mobile UI (Ledger / Add / Capture / Pending / Ask / Settings) with bottom nav.
 - Privacy toggle (`PRIVACY_LOCAL_ONLY` + Settings UI) — blocks Google Vision when on.
 - Optional Google Vision OCR path (`FEATURE_OCR_GOOGLE_VISION` + `GOOGLE_VISION_API_KEY`).
@@ -15,7 +19,6 @@ versioning: [Semantic Versioning](https://semver.org/).
 - Async Capture OCR: upload → `processing` spool → Pending when done (no UI jam).
 - Duplicate detection (`duplicate_of_id`): flag same date/amount/merchant; exclude from Ask until dismissed.
 - Tool-calling Ask agent + product synonyms (kebab↔Döner, etc.).
-- Design note for bank↔receipt reconcile/enrich ([#17](https://github.com/githubphadnis/xtav2/issues/17)).
 - **Multi-currency FX:** ECB/Frankfurter rates → `amount_base`; ledger ≈ base; `/health/fx`.
 - Professional mobile chrome: Fraunces + Source Sans 3, teal/paper palette (no muddy green gradient).
 - OCR post-processing: reject junk categories, absurd dates; tighter German-receipt vision prompt.

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Bank import · xtav2{% endblock %}
+{% block content %}
+<h1 class="page-title">Bank import</h1>
+<p class="page-lead">
+  Upload a CSV statement. Matching receipt rows get linked (no second total);
+  unmatched debits become bank expenses you can enrich with Capture later.
+</p>
+
+<form method="post" action="/bank/import" enctype="multipart/form-data">
+  <label class="field">
+    <span>Statement CSV</span>
+    <input required type="file" name="file" accept=".csv,text/csv" />
+  </label>
+  <p class="page-lead" style="margin-top:0.75rem">
+    Needs a date column (Datum / Buchungstag) and amount (Betrag). Merchant text
+    optional. Signed amounts: negatives = spends; all-positive files treated as debits.
+  </p>
+  <button type="submit" class="btn btn-primary" style="margin-top:1rem">Import</button>
+</form>
+
+<p style="margin-top:1.5rem"><a href="/settings">← Settings</a></p>
+{% endblock %}

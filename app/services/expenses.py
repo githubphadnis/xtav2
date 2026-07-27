@@ -437,6 +437,7 @@ def add_expense(
     source: str = "manual",
     status: str = "posted",
     receipt_path: str | None = None,
+    bank_ref: str | None = None,
     fx_rate_override: Decimal | None = None,
 ) -> Expense:
     """Persist an expense; convert to base currency when FEATURE_MULTI_CURRENCY."""
@@ -475,6 +476,7 @@ def add_expense(
         source=source,
         status=status,
         receipt_path=receipt_path,
+        bank_ref=bank_ref,
     )
     db.add(row)
     db.commit()

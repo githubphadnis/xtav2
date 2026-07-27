@@ -295,6 +295,7 @@ def capture_page(
 @app.get("/pending", response_class=HTMLResponse)
 def pending_page(
     request: Request,
+    flash: str | None = None,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> HTMLResponse:
@@ -303,7 +304,13 @@ def pending_page(
     return templates.TemplateResponse(
         request,
         "pending.html",
-        _page_context(request=request, db=db, settings=settings, active="pending"),
+        _page_context(
+            request=request,
+            db=db,
+            settings=settings,
+            active="pending",
+            flash=flash,
+        ),
     )
 
 
@@ -333,6 +340,60 @@ def settings_page(
         "settings.html",
         _page_context(request=request, db=db, settings=settings, active="settings"),
     )
+
+
+@app.get("/bank", response_class=HTMLResponse)
+def bank_page(
+    request: Request,
+    flash: str | None = None,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> HTMLResponse:
+    if not require_flag("FEATURE_BANK_IMPORT", settings):
+        raise HTTPException(status_code=404, detail="Bank import disabled")
+    return templates.TemplateResponse(
+        request,
+        "bank.html",
+        _page_context(
+            request=request,
+            db=db,
+            settings=settings,
+            active="settings",
+            flash=flash,
+        ),
+    )
+
+
+@app.post("/bank/import")
+async def bank_import(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> RedirectResponse:
+    if not require_flag("FEATURE_BANK_IMPORT", settings):
+        raise HTTPException(status_code=404, detail="Bank import disabled")
+    from urllib.parse import quote
+
+    from app.services.bank_import import import_bank_csv
+
+    data = await file.read()
+    max_bytes = settings.max_upload_size_mb * 1024 * 1024
+    if len(data) > max_bytes:
+        raise HTTPException(status_code=400, detail="File too large")
+    result = import_bank_csv(
+        db,
+        settings=settings,
+        data=data,
+        filename=file.filename or "statement.csv",
+    )
+    if result.errors:
+        msg = result.errors[0]
+    else:
+        msg = (
+            f"Parsed {result.parsed}: created {result.created}, "
+            f"linked {result.linked}, skipped {result.skipped_existing}."
+        )
+    return RedirectResponse(url=f"/bank?flash={quote(msg)}", status_code=303)
 
 
 @app.post("/settings/privacy")
@@ -480,7 +541,19 @@ def confirm_pending(
     if parsed_amount <= 0:
         raise HTTPException(status_code=400, detail="Amount must be positive")
 
-    updated = expense_service.update_expense(
+    from urllib.parse import quote
+
+    from app.services.confirm_receipt import confirm_receipt_expense
+
+    items: list[dict[str, object]] = []
+    if settings.feature_line_items:
+        for desc, amt in zip(item_description, item_amount, strict=False):
+            d = (desc or "").strip()
+            if not d:
+                continue
+            items.append({"description": d, "amount": amt or "0"})
+
+    updated, flash = confirm_receipt_expense(
         db,
         settings=settings,
         expense_id=expense_id,
@@ -490,22 +563,14 @@ def confirm_pending(
         merchant=merchant,
         category=category,
         note=note,
-        status="posted",
+        line_items=items,
     )
     if updated is None:
         raise HTTPException(status_code=404, detail="Expense not found")
-
-    if settings.feature_line_items:
-        items: list[dict[str, object]] = []
-        for desc, amt in zip(item_description, item_amount, strict=False):
-            d = (desc or "").strip()
-            if not d:
-                continue
-            items.append({"description": d, "amount": amt or "0"})
-        expense_service.replace_line_items(
-            db, expense_id=expense_id, items=items, currency=currency
-        )
-    return RedirectResponse(url="/pending", status_code=303)
+    return RedirectResponse(
+        url=f"/pending?flash={quote(flash)}",
+        status_code=303,
+    )
 
 
 @app.post("/ask", response_class=HTMLResponse)

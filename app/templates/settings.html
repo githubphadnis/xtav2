@@ -39,8 +39,16 @@
     <dd>{{ "yes" if google_vision_effective else "no" }}</dd>
     <dt>Line items</dt>
     <dd>{{ "on" if settings.feature_line_items else "off" }}</dd>
+    <dt>Bank import</dt>
+    <dd>{{ "on" if settings.feature_bank_import else "off" }}</dd>
     <dt>Env privacy default</dt>
     <dd>{{ "on" if settings.privacy_local_only else "off" }}</dd>
   </dl>
 </div>
+
+{% if settings.feature_bank_import %}
+<p style="margin-top:1.5rem">
+  <a class="btn btn-primary" href="/bank">Import bank CSV</a>
+</p>
+{% endif %}
 {% endblock %}

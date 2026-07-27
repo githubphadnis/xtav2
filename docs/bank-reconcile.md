@@ -1,31 +1,39 @@
-# Bank ↔ receipt reconcile (design note)
+# Bank ↔ receipt reconcile
 
 **Tracking:** [#17](https://github.com/githubphadnis/xtav2/issues/17)  
-**Status:** not implemented — capture rules before `FEATURE_BANK_IMPORT`.
+**Flag:** `FEATURE_BANK_IMPORT`  
+**Status:** implemented (CSV import + enrich on confirm)
 
 ## Not the same as #16 duplicates
 
 | Same-source double scan | Bank + receipt |
 |-------------------------|----------------|
 | Two photos of one receipt | Bank total + receipt detail |
-| Flag / delete one | **Map and enrich** — keep both signals |
+| Flag / delete one | **Map and enrich** — keep both signals on **one** expense row |
 
 ## Rules
 
 1. **Receipt first, bank later**  
-   Match bank line → existing expense (date ±1 day, amount, merchant).  
-   Link bank ref; **do not** create a second posted total.
+   Match bank line → existing expense (date ±1 day, amount, merchant overlap).  
+   Set `bank_ref`; **do not** create a second posted total. Source → `bank+receipt`.
 
 2. **Bank first, receipt later**  
-   Match receipt → bank expense.  
-   **Add line items** + receipt image to that row.  
-   Do **not** throw away the receipt as a duplicate.
+   On pending **Confirm**, match receipt → bank expense.  
+   **Add line items** + receipt image to that row; **delete** the receipt-only draft.  
+   Ask counts once.
 
 3. **No match**  
    Create a new expense (bank-only or receipt-only).
 
+## CSV
+
+- Settings → **Import bank CSV** (`/bank`) when the flag is on.
+- Headers: date (`Datum` / `Buchungstag` / `date`) + amount (`Betrag` / `amount`).
+- Optional: merchant / `Verwendungszweck`, currency, reference.
+- Signed files: only **negative** amounts import as spends. All-positive files: all rows as spends.
+- Idempotent via `bank_ref` (CSV reference or stable hash).
+
 ## Fingerprint note
 
-#16 fingerprinting must **not** auto-discard a receipt that should enrich a bank row.
-Bank import will use an explicit reconcile path (match → enrich) instead of
-`duplicate_of_id` alone.
+#16 fingerprinting must **not** replace this path. Bank↔receipt uses explicit
+reconcile (`app/services/reconcile.py`) so Ask never double-counts.
