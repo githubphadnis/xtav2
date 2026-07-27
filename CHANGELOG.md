@@ -16,6 +16,7 @@ versioning: [Semantic Versioning](https://semver.org/).
 - Duplicate detection (`duplicate_of_id`): flag same date/amount/merchant; exclude from Ask until dismissed.
 - Tool-calling Ask agent + product synonyms (kebab↔Döner, etc.).
 - Design note for bank↔receipt reconcile/enrich ([#17](https://github.com/githubphadnis/xtav2/issues/17)).
+- **Multi-currency FX:** ECB/Frankfurter rates → `amount_base`; ledger ≈ base; `/health/fx`.
 - Professional mobile chrome: Fraunces + Source Sans 3, teal/paper palette (no muddy green gradient).
 - OCR post-processing: reject junk categories, absurd dates; tighter German-receipt vision prompt.
 - cOcO Rule 15 (Production-Path Parity) and Rule 16 (Rule Promotion) synced from scaffolding.

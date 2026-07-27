@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     app_log_level: str = "INFO"
     app_timezone: str = "Europe/Amsterdam"
     base_currency: str = "EUR"
+    # Frankfurter (ECB) — no API key. Override if you self-host a mirror.
+    fx_api_base_url: str = "https://api.frankfurter.app"
 
     database_url: str = "postgresql://xtav2:xtav2@postgres:5432/xtav2"
 

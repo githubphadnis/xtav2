@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import currency_select %}
 {% block title %}Pending · xtav2{% endblock %}
 {% block content %}
 <h1 class="page-title">Pending</h1>
@@ -29,7 +30,7 @@
       <div class="row-2">
         <label class="field">
           <span>Currency</span>
-          <input required name="currency" maxlength="3" value="{{ e.currency }}" style="text-transform:uppercase" />
+          {{ currency_select("currency", e.currency, currencies) }}
         </label>
         <label class="field">
           <span>Category</span>

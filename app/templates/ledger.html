@@ -2,7 +2,7 @@
 {% block title %}Ledger · xtav2{% endblock %}
 {% block content %}
 <h1 class="page-title">Ledger</h1>
-<p class="page-lead">Recent posted expenses. Active duplicates are excluded from Ask totals.</p>
+<p class="page-lead">Recent posted expenses. Ask totals use {{ settings.base_currency }}.</p>
 
 {% if expenses %}
 <ul class="list">
@@ -22,6 +22,11 @@
     </div>
     <div style="text-align:right">
       <p class="item-amt">{{ format_money(e.amount) }} {{ e.currency }}</p>
+      {% if settings.feature_multi_currency and e.amount_base is not none and e.currency != settings.base_currency %}
+      <p class="item-meta">≈ {{ format_money(e.amount_base) }} {{ e.base_currency or settings.base_currency }}</p>
+      {% elif settings.feature_multi_currency and e.currency != settings.base_currency and e.amount_base is none %}
+      <p class="dup-warn">No FX yet</p>
+      {% endif %}
       {% if settings.feature_manual_entry %}
       <form method="post" action="/expenses/{{ e.id }}/delete" style="margin-top:0.4rem"
             onsubmit="return confirm('Delete this expense?');">

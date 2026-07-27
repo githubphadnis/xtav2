@@ -36,6 +36,7 @@ services:
       APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
       APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Amsterdam}
       BASE_CURRENCY: ${BASE_CURRENCY:-EUR}
+      FX_API_BASE_URL: ${FX_API_BASE_URL:-https://api.frankfurter.app}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://lenai:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:14b}
       OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-}

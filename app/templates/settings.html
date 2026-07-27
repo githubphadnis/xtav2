@@ -23,6 +23,8 @@
   <dl>
     <dt>Base currency</dt>
     <dd>{{ settings.base_currency }}</dd>
+    <dt>Multi-currency</dt>
+    <dd>{{ "on" if settings.feature_multi_currency else "off" }}</dd>
     <dt>Ollama model</dt>
     <dd>{{ settings.ollama_model }}</dd>
     <dt>Vision model</dt>

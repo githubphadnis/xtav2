@@ -437,28 +437,31 @@ def add_expense(
     source: str = "manual",
     status: str = "posted",
     receipt_path: str | None = None,
+    fx_rate_override: Decimal | None = None,
 ) -> Expense:
-    """Persist an expense; copy amount to base when multi-currency is off or same FX."""
+    """Persist an expense; convert to base currency when FEATURE_MULTI_CURRENCY."""
+    from app.services.fx import to_base_amount
+
     amount = amount.quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
     currency_norm = currency.strip().upper()
     base = settings.base_currency.upper()
-    amount_base: Decimal | None = None
-    base_currency: str | None = None
-    if settings.feature_multi_currency:
-        # V1: 1:1 when currencies match; FX rates land in a later milestone.
-        if currency_norm == base:
-            amount_base = amount
-            base_currency = base
-        else:
-            amount_base = None
-            base_currency = base
-            logger.info(
-                "Stored foreign currency without FX conversion",
-                extra={"currency": currency_norm, "base": base},
-            )
-    else:
+    amount_base, _rate, fx_err = to_base_amount(
+        settings,
+        amount=amount,
+        currency=currency_norm,
+        spent_on=spent_on,
+        fx_rate_override=fx_rate_override,
+    )
+    base_currency: str | None = base if settings.feature_multi_currency else currency_norm
+    if not settings.feature_multi_currency:
         amount_base = amount
         base_currency = currency_norm
+    elif fx_err:
+        logger.info(
+            "Stored foreign currency without FX conversion: %s",
+            fx_err,
+            extra={"currency": currency_norm, "base": base},
+        )
 
     row = Expense(
         spent_on=spent_on,
@@ -496,8 +499,11 @@ def update_expense(
     category: str = "",
     note: str = "",
     status: str | None = None,
+    fx_rate_override: Decimal | None = None,
 ) -> Expense | None:
-    """Update fields on an expense; optionally change status (e.g. pending → posted)."""
+    """Update fields on an expense; refresh base amount via FX when needed."""
+    from app.services.fx import to_base_amount
+
     row = db.get(Expense, expense_id)
     if row is None:
         return None
@@ -511,9 +517,21 @@ def update_expense(
     row.note = note.strip()
     if status is not None:
         row.status = status
-    if settings.feature_multi_currency and currency_norm == settings.base_currency.upper():
+
+    if settings.feature_multi_currency:
+        amount_base, _rate, _err = to_base_amount(
+            settings,
+            amount=amount,
+            currency=currency_norm,
+            spent_on=spent_on,
+            fx_rate_override=fx_rate_override,
+        )
+        row.amount_base = amount_base
+        row.base_currency = settings.base_currency.upper()
+    else:
         row.amount_base = amount
         row.base_currency = currency_norm
+
     db.commit()
     db.refresh(row)
     if row.status in {"pending", "posted"}:

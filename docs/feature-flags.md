@@ -6,7 +6,7 @@ Every module is gated by an environment variable. Flags are booleans parsed from
 | Flag | Default (V1) | Module |
 |------|--------------|--------|
 | `FEATURE_MANUAL_ENTRY` | `true` | Manual expense form + API |
-| `FEATURE_MULTI_CURRENCY` | `true` | Original + base currency amounts |
+| `FEATURE_MULTI_CURRENCY` | `true` | Original currency + ECB FX into `BASE_CURRENCY` (`docs/multi-currency.md`) |
 | `FEATURE_OLLAMA_QA` | `true` | Natural-language spend questions |
 | `FEATURE_MCP` | `true` | MCP server process / tools |
 | `FEATURE_RECEIPT_OCR` | `false` | Receipt photo / camera ingest + pending queue |

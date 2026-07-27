@@ -32,6 +32,7 @@ from app.services import expenses as expense_service
 from app.services import settings_store
 from app.services.duplicates import count_active_duplicates, dismiss_duplicate
 from app.services.expenses import format_money
+from app.services.fx import COMMON_CURRENCIES, fx_health
 from app.services.receipts import (
     enqueue_receipt_upload,
     finalize_receipt_ocr,
@@ -89,6 +90,7 @@ def _page_context(
         "settings": settings,
         "flags": flag_snapshot(settings, db),
         "today": today_iso(settings),
+        "currencies": list(COMMON_CURRENCIES),
     }
     ctx.update(extra)
     return ctx
@@ -167,6 +169,14 @@ def health_db() -> dict[str, object]:
     except Exception as exc:
         logger.exception("Database health check failed")
         return {"status": "error", "detail": str(exc)}
+
+
+@app.get("/health/fx")
+def health_fx(settings: Settings = Depends(get_settings)) -> dict[str, object]:
+    """Probe FX API when multi-currency is enabled."""
+    if not settings.feature_multi_currency:
+        return {"status": "disabled", "reachable": False}
+    return fx_health(settings)
 
 
 @app.get("/health/spend-summary")
@@ -345,6 +355,7 @@ def create_expense(
     merchant: str = Form(""),
     category: str = Form(""),
     note: str = Form(""),
+    fx_rate: str = Form(""),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> RedirectResponse:
@@ -358,6 +369,15 @@ def create_expense(
     if parsed_amount <= 0:
         raise HTTPException(status_code=400, detail="Amount must be positive")
 
+    rate_override: Decimal | None = None
+    if fx_rate.strip():
+        try:
+            rate_override = Decimal(fx_rate.replace(",", "."))
+            if rate_override <= 0:
+                raise InvalidOperation
+        except (InvalidOperation, ValueError) as exc:
+            raise HTTPException(status_code=400, detail="Invalid FX rate") from exc
+
     expense_service.add_expense(
         db,
         settings=settings,
@@ -368,6 +388,7 @@ def create_expense(
         category=category,
         note=note,
         source="manual",
+        fx_rate_override=rate_override,
     )
     return RedirectResponse(url="/", status_code=303)
 

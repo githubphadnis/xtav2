@@ -1,8 +1,8 @@
 ﻿# Breadcrumbs — xtav2
 
-## Session: 2026-07-27 (pm)
+## Session: 2026-07-27 (evening)
 
-- **Work done:** #16 duplicates; tool-calling Ask + kebab/Döner synonyms;
-  #17 bank↔receipt enrich rules documented (not built).
-- **Next:** Redeploy; retest kebabs Ask; then bank import/#17 or #15 lenai.
+- **Work done:** Multi-currency FX (#19) — Frankfurter/ECB → amount_base;
+  currency dropdown; ledger ≈ base; /health/fx.
+- **Next:** Redeploy; add a USD expense to verify; then #17 bank reconcile or Ask retest.
 - **Open:** #9 parked, #14 security, #15 lenai, #17 bank reconcile.

@@ -35,6 +35,7 @@
 | [#15](https://github.com/githubphadnis/xtav2/issues/15) | **lenai platform** (infra) |
 | [#16](https://github.com/githubphadnis/xtav2/issues/16) | Duplicate detection — **shipped** |
 | [#17](https://github.com/githubphadnis/xtav2/issues/17) | Bank↔receipt reconcile + enrich line items |
+| [#19](https://github.com/githubphadnis/xtav2/issues/19) | Multi-currency FX — **shipped** |
 
 ### Closed (V1.0 / V1.1 partial)
 
