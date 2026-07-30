@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 
 os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
 os.environ["FEATURE_RECEIPT_OCR"] = "true"
 os.environ["FEATURE_OCR_GOOGLE_VISION"] = "false"
 os.environ["PRIVACY_LOCAL_ONLY"] = "true"
-os.environ["UPLOAD_DIR"] = "uploads-ops-test"
-os.environ["OPS_REIMPORT_TOKEN"] = ""
 
 from fastapi.testclient import TestClient
 
@@ -18,10 +17,15 @@ from app.config import get_settings
 from app.db import init_db
 from app.main import app
 
-get_settings.cache_clear()
+_tmp_upload: tempfile.TemporaryDirectory[str] | None = None
 
 
 def setup_function() -> None:
+    global _tmp_upload
+    if _tmp_upload is not None:
+        _tmp_upload.cleanup()
+    _tmp_upload = tempfile.TemporaryDirectory(prefix="xtav2-ops-")
+    os.environ["UPLOAD_DIR"] = _tmp_upload.name
     os.environ["OPS_REIMPORT_TOKEN"] = "test-ops-token"
     get_settings.cache_clear()
     from app import db as db_mod
@@ -29,11 +33,14 @@ def setup_function() -> None:
     db_mod.get_engine.cache_clear()
     db_mod.get_session_factory.cache_clear()
     init_db()
-    Path("uploads-ops-test").mkdir(exist_ok=True)
-    for stale in Path("uploads-ops-test").glob("*"):
-        if stale.is_file():
-            stale.unlink()
-    (Path("uploads-ops-test") / "r.jpg").write_bytes(b"\xff\xd8\xff\xe0" + b"\x00" * 8)
+    (Path(_tmp_upload.name) / "r.jpg").write_bytes(b"\xff\xd8\xff\xe0" + b"\x00" * 8)
+
+
+def teardown_function() -> None:
+    global _tmp_upload
+    if _tmp_upload is not None:
+        _tmp_upload.cleanup()
+        _tmp_upload = None
 
 
 def test_ops_reimport_dry_run() -> None:
