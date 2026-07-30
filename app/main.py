@@ -158,7 +158,7 @@ def _client_is_private(request: Request) -> bool:
     host = (request.client.host if request.client else "") or ""
     if host in {"127.0.0.1", "::1"} or host.startswith("127."):
         return True
-    if host.startswith("10.") or host.startswith("192.168."):
+    if host.startswith(("10.", "192.168.")):
         return True
     if host.startswith("172."):
         try:
@@ -190,10 +190,11 @@ async def ops_reimport(
 
     from app.services.reimport import reimport_receipts
 
-    body = {}
     try:
         body = await request.json()
-    except Exception:
+    except (ValueError, TypeError, RuntimeError):
+        body = {}
+    if not isinstance(body, dict):
         body = {}
     confirm = str(body.get("confirm") or "")
     if confirm != "WIPE_AND_REIMPORT":
