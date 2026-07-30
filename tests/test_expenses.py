@@ -215,6 +215,64 @@ def test_format_money() -> None:
     assert expense_service.format_money("3.5") == "3.50"
 
 
+def test_how_much_spending_on_google_not_line_items() -> None:
+    """Exact user phrase must hit Google Workspace merchant, not random SKUs.
+
+    Regression: 'am'/'spending' tokens OR-matched CHAMPIGNONS / SCHWAMM via %am%.
+    """
+    os.environ["FEATURE_LINE_ITEMS"] = "true"
+    get_settings.cache_clear()
+    settings = get_settings()
+    SessionLocal = get_session_factory()
+    phrase = "How much am I spending on Google?"
+    with SessionLocal() as db:
+        expense_service.add_expense(
+            db,
+            settings=settings,
+            spent_on=date(2026, 7, 1),
+            amount=Decimal("32.40"),
+            currency="EUR",
+            merchant="Google Workspace",
+            category="software",
+            source="bank",
+        )
+        groceries = expense_service.add_expense(
+            db,
+            settings=settings,
+            spent_on=date(2026, 7, 2),
+            amount=Decimal("12.00"),
+            currency="EUR",
+            merchant="REWE",
+            category="groceries",
+        )
+        expense_service.replace_line_items(
+            db,
+            expense_id=groceries.id,
+            items=[
+                {"description": "UH CHAMPIGNONS", "amount": "2.99"},
+                {"description": "G&G SCHWAMMTUCH", "amount": "0.85"},
+                {"description": "1/4 Lambrusco", "amount": "5.90"},
+            ],
+            currency="EUR",
+        )
+
+        parsed = expense_service.parse_ask_query(phrase)
+        assert parsed["filter_type"] == "merchant"
+        assert str(parsed["filter_value"]).lower() == "google"
+
+        agg = expense_service.query_spend(db, settings=settings, q=phrase)
+        assert agg["count"] == 1
+        assert float(agg["total"]) == 32.40
+        assert int(agg["line_match_count"] or 0) == 0
+
+        ans = expense_service.try_deterministic_answer(agg)
+        assert ans is not None
+        assert "32.40" in ans
+        assert "Google" in ans or "google" in ans.lower()
+        assert "CHAMPIGNONS" not in ans
+        assert "SCHWAMM" not in ans
+
+
 def test_delete_expense() -> None:
     settings = get_settings()
     SessionLocal = get_session_factory()

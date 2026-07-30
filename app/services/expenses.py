@@ -23,8 +23,16 @@ _STOPWORDS = frozenset(
         "much",
         "did",
         "i",
+        "am",
+        "is",
+        "are",
         "spend",
         "spent",
+        "spending",
+        "paying",
+        "pay",
+        "cost",
+        "costs",
         "at",
         "on",
         "in",
@@ -219,7 +227,7 @@ def parse_ask_query(q: str) -> dict[str, object]:
             }
 
     merchant_match = re.search(
-        r"(?:at|to|from)\s+(?:the\s+)?([a-z0-9][\w&.\-äöüß]{1,50})",
+        r"(?:at|to|from|on)\s+(?:the\s+)?([a-z0-9][\w&.\-äöüß]{1,50})",
         ql,
         re.IGNORECASE,
     )
@@ -443,7 +451,21 @@ def try_deterministic_answer(aggregate: dict[str, object]) -> str | None:
     line_matches = aggregate.get("line_matches")
     line_total = aggregate.get("line_total")
     line_count = int(aggregate.get("line_match_count") or 0)
-    if isinstance(line_matches, list) and line_count > 0:
+    parsed_early = aggregate.get("filter")
+    filter_type_early = (
+        str(parsed_early.get("filter_type") or "") if isinstance(parsed_early, dict) else ""
+    )
+    # Product line hits only when we are not asking for a merchant/category total.
+    prefer_lines = (
+        isinstance(line_matches, list)
+        and line_count > 0
+        and filter_type_early not in {"merchant", "category"}
+        and (
+            int(aggregate.get("count") or 0) == 0
+            or _tokens_look_like_product(parsed_early if isinstance(parsed_early, dict) else {})
+        )
+    )
+    if prefer_lines:
         samples = []
         for m in line_matches[:5]:
             if not isinstance(m, dict):
@@ -454,8 +476,24 @@ def try_deterministic_answer(aggregate: dict[str, object]) -> str | None:
         extra = f" Examples: {'; '.join(samples)}." if samples else ""
         return (
             f"Found {line_count} matching line item(s) totaling "
-            f"{line_total} {currency}.{extra}"
+            f"{format_money(Decimal(str(line_total or 0)))} {currency}.{extra}"
         )
+
+    if intent == "amount":
+        parsed = parsed_early if isinstance(parsed_early, dict) else None
+        total = format_money(Decimal(str(aggregate.get("total") or 0)))
+        count = int(aggregate.get("count") or 0)
+        if parsed and str(parsed.get("filter_type") or "") == "merchant":
+            name = str(parsed.get("filter_value") or "that merchant")
+            return f"You spent {total} {currency} on “{name}” across {count} expense(s)."
+        if parsed and str(parsed.get("filter_type") or "") == "category":
+            cat = str(parsed.get("filter_value") or "that category")
+            return f"You spent {total} {currency} on {cat} across {count} expense(s)."
+        if parsed and str(parsed.get("filter_type") or "") == "tokens":
+            tokens = parsed.get("tokens") or []
+            label = " ".join(str(t) for t in tokens) if isinstance(tokens, list) else "that"
+            return f"You spent {total} {currency} matching “{label}” across {count} expense(s)."
+        return f"You spent {total} {currency} across {count} expense(s)."
 
     if intent != "visits":
         return None
@@ -491,6 +529,18 @@ def try_deterministic_answer(aggregate: dict[str, object]) -> str | None:
                 f"Top merchants by visits: {', '.join(parts)}."
             )
     return None
+
+
+def _tokens_look_like_product(parsed: dict[str, object]) -> bool:
+    """True when Ask tokens map to product synonyms (kebab, milk, …)."""
+    tokens = parsed.get("tokens")
+    if not isinstance(tokens, list):
+        return False
+    for token in tokens:
+        key = str(token).casefold()
+        if key in _PRODUCT_SYNONYMS:
+            return True
+    return False
 
 
 def _text_match_clause(q: str) -> ColumnElement[bool] | None:
@@ -570,11 +620,23 @@ def query_line_matches(
     start: date | None = None,
     end: date | None = None,
 ) -> list[dict[str, object]]:
-    """Return posted line items matching q tokens (for Ask grounding)."""
+    """Return posted line items matching product tokens (for Ask grounding).
+
+    Skips merchant/category questions — those are answered from expense headers.
+    """
     if not (q or "").strip():
         return []
-    tokens = search_tokens(q or "")
+    parsed = parse_ask_query(q or "")
+    filter_type = str(parsed.get("filter_type") or "none")
+    if filter_type in {"merchant", "category"}:
+        return []
+    tokens_raw = parsed.get("tokens")
+    tokens = [str(t) for t in tokens_raw] if isinstance(tokens_raw, list) else []
     if not tokens:
+        return []
+    # Only search line items for product-style queries (synonyms) or lone tokens
+    # that are not already treated as merchants above.
+    if not _tokens_look_like_product(parsed) and len(tokens) > 1:
         return []
     stmt = (
         select(ExpenseLineItem, Expense)
