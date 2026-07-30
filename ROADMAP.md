@@ -40,7 +40,7 @@
 | [#21](https://github.com/githubphadnis/xtav2/issues/21) | Geographic spend map |
 | [#22](https://github.com/githubphadnis/xtav2/issues/22) | Line-item categories + visual breakdown |
 | [#23](https://github.com/githubphadnis/xtav2/issues/23) | Optional public/cloud LLM for Ask |
-| [#24](https://github.com/githubphadnis/xtav2/issues/24) | Pattern: receipt date ≠ upload day (+ repair old rows) |
+| [#24](https://github.com/githubphadnis/xtav2/issues/24) | Pattern: receipt date ≠ upload day — **repair path shipped**; Pending confirm on prod |
 
 ### Closed (V1.0 / V1.1 partial)
 
