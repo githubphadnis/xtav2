@@ -17,6 +17,9 @@ versioning: [Semantic Versioning](https://semver.org/).
   date wins over LLM; unknown dates get `date:unparsed` + Pending warning ([#24](https://github.com/githubphadnis/xtav2/issues/24)).
 
 ### Added
+- Non-spend transfers: bank lines matching family (Rashmi/NRE) or savings (pocket /
+  Loose Change) get categories `family` / `savings` and are excluded from Ask +
+  Insights ([#27](https://github.com/githubphadnis/xtav2/issues/27)).
 - Operator wipe+reimport: CLI and `POST /ops/reimport` (LAN / optional
   `OPS_REIMPORT_TOKEN`) ([#24](https://github.com/githubphadnis/xtav2/issues/24)).
 - Pending list shows up to 200 drafts; nav badge uses real pending count.

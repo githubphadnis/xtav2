@@ -6,7 +6,8 @@
   {% if filter_label %}
   Filtered: {{ filter_label }}. <a href="/">Clear</a>
   {% else %}
-  Recent posted expenses. Ask totals use {{ settings.base_currency }}.
+  Recent posted expenses. Ask / Insights totals skip family &amp; savings transfers.
+  Ask totals use {{ settings.base_currency }}.
   {% endif %}
 </p>
 
@@ -18,7 +19,9 @@
       <p class="item-title">{{ e.merchant or e.category or "Expense" }}</p>
       <p class="item-meta">{{ e.spent_on }} · {{ e.category }}{% if e.source and e.source != 'manual' %} · {{ e.source }}{% endif %}</p>
       {% if e.note %}<p class="item-meta">{{ e.note }}</p>{% endif %}
-      {% if e.bank_ref and e.receipt_path %}
+      {% if is_non_spend_category(e.category) %}
+      <p class="item-meta">Not counted as spend ({{ e.category }})</p>
+      {% elif e.bank_ref and e.receipt_path %}
       <p class="item-meta">Bank + receipt linked</p>
       {% elif e.bank_ref %}
       <p class="item-meta">Bank only — scan receipt to enrich</p>

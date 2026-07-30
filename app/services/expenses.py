@@ -305,6 +305,7 @@ def merchant_breakdown(
         )
         .where(Expense.status == "posted")
         .where(_exclude_active_duplicates())
+        .where(_exclude_non_spend())
         .group_by(Expense.merchant)
         .order_by(func.count(Expense.id).desc(), Expense.merchant)
         .limit(max(1, min(limit, 50)))
@@ -342,6 +343,7 @@ def top_expensive_line_items(
         .join(Expense, Expense.id == ExpenseLineItem.expense_id)
         .where(Expense.status == "posted")
         .where(_exclude_active_duplicates())
+        .where(_exclude_non_spend())
         .order_by(ExpenseLineItem.amount.desc(), ExpenseLineItem.id.desc())
         .limit(max(1, min(limit, 50)))
     )
@@ -385,6 +387,7 @@ def top_expensive_expenses(
         select(Expense)
         .where(Expense.status == "posted")
         .where(_exclude_active_duplicates())
+        .where(_exclude_non_spend())
         .order_by(amount_col.desc(), Expense.id.desc())
         .limit(max(1, min(limit, 50)))
     )
@@ -578,6 +581,7 @@ def query_line_matches(
         .join(Expense, Expense.id == ExpenseLineItem.expense_id)
         .where(Expense.status == "posted")
         .where(_exclude_active_duplicates())
+        .where(_exclude_non_spend())
     )
     if start:
         stmt = stmt.where(Expense.spent_on >= start)
@@ -741,6 +745,14 @@ def _exclude_active_duplicates() -> ColumnElement[bool]:
     )
 
 
+def _exclude_non_spend() -> ColumnElement[bool]:
+    """Ask/Insights: drop family/savings transfers (still listed on Expenses)."""
+    from app.services.transfers import exclude_non_spend
+
+    return exclude_non_spend()
+
+
+
 def list_expenses(
     db: Session,
     *,
@@ -805,6 +817,7 @@ def count_empty_merchants(db: Session, *, status: str = "posted") -> int:
                 Expense.status == status,
                 or_(Expense.merchant == "", Expense.merchant.is_(None)),
                 _exclude_active_duplicates(),
+                _exclude_non_spend(),
             )
         )
         or 0
@@ -837,6 +850,7 @@ def query_spend(
     base_stmt = select(func.coalesce(func.sum(amount_col), 0), func.count(Expense.id)).where(
         Expense.status == "posted",
         _exclude_active_duplicates(),
+        _exclude_non_spend(),
     )
     if start:
         base_stmt = base_stmt.where(Expense.spent_on >= start)

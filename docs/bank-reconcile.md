@@ -33,6 +33,21 @@
 - Signed files: only **negative** amounts import as spends. All-positive files: all rows as spends.
 - Idempotent via `bank_ref` (CSV reference or stable hash).
 
+## Non-spend transfers (family / savings)
+
+Some bank lines are **not household spend** (family support, pocket / loose-change
+moves). They stay on the Expenses list but are **excluded from Ask + Insights**.
+
+| Pattern (merchant/note) | Category | Counted as spend? |
+|-------------------------|----------|-------------------|
+| `Rashmi`, `NRE`, … | `family` | No |
+| `pocket`, `Loose Change`, … | `savings` | No |
+| Normal merchants | unchanged | Yes |
+
+- Auto-tagged on bank CSV import (`app/services/transfers.py`).
+- Reclassify existing rows: `python -m app.tools.reclassify_transfers` (or re-import the same CSV — reclassify runs after import).
+- UI shows “Not counted as spend (family|savings)”.
+
 ## Fingerprint note
 
 #16 fingerprinting must **not** replace this path. Bank↔receipt uses explicit

@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.models import Expense
-from app.services.expenses import _exclude_active_duplicates, format_money
+from app.services.expenses import _exclude_active_duplicates, _exclude_non_spend, format_money
 
 _MONEY_QUANT = Decimal("0.01")
 
@@ -142,6 +142,7 @@ def period_total(
     ).where(
         Expense.status == "posted",
         _exclude_active_duplicates(),
+        _exclude_non_spend(),
         Expense.spent_on >= start,
         Expense.spent_on <= end,
     )
@@ -178,6 +179,7 @@ def _breakdown(
         .where(
             Expense.status == "posted",
             _exclude_active_duplicates(),
+            _exclude_non_spend(),
             Expense.spent_on >= start,
             Expense.spent_on <= end,
         )

@@ -15,6 +15,7 @@ from app.services.reconcile import (
     find_expense_by_bank_ref,
     find_reconcile_candidates,
 )
+from app.services.transfers import classify_transfer_category, reclassify_non_spend_transfers
 
 logger = logging.getLogger("xtav2.bank_import")
 
@@ -52,6 +53,11 @@ def import_bank_csv(
     result.parsed = len(rows)
     for row in rows:
         _import_one(db, settings=settings, row=row, result=result)
+
+    # Tag existing + new transfer rows (Rashmi / pocket) so Ask/Insights skip them.
+    reclassified = reclassify_non_spend_transfers(db)
+    if reclassified:
+        logger.info("Reclassified %s non-spend transfer rows", reclassified)
 
     logger.info(
         "Bank import %s: parsed=%s created=%s linked=%s skipped=%s",
@@ -116,7 +122,7 @@ def _import_one(
         amount=row.amount,
         currency=row.currency,
         merchant=row.merchant,
-        category="",
+        category=classify_transfer_category(row.merchant, row.note) or "",
         note=row.note,
         source="bank",
         status="posted",

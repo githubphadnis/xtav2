@@ -41,6 +41,9 @@
 | [#22](https://github.com/githubphadnis/xtav2/issues/22) | Line-item categories + visual breakdown |
 | [#23](https://github.com/githubphadnis/xtav2/issues/23) | Optional public/cloud LLM for Ask |
 | [#24](https://github.com/githubphadnis/xtav2/issues/24) | Pattern: receipt date ≠ upload day — **repair path shipped**; Pending confirm on prod |
+| [#25](https://github.com/githubphadnis/xtav2/issues/25) | Bulk delete expenses / Pending |
+| [#26](https://github.com/githubphadnis/xtav2/issues/26) | Bulk approve Pending |
+| [#27](https://github.com/githubphadnis/xtav2/issues/27) | Non-spend transfers (`family` / `savings`) — **shipped** |
 
 ### Closed (V1.0 / V1.1 partial)
 

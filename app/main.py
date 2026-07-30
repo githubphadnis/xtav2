@@ -39,6 +39,7 @@ from app.services.receipts import (
     finalize_receipt_ocr,
     upload_root,
 )
+from app.services.transfers import is_non_spend_category
 
 settings = get_settings()
 logging.basicConfig(level=getattr(logging, settings.app_log_level.upper(), logging.INFO))
@@ -48,6 +49,7 @@ TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals["format_money"] = format_money
+templates.env.globals["is_non_spend_category"] = is_non_spend_category
 templates.env.filters["urlencode"] = lambda value: quote(str(value), safe="")
 
 
