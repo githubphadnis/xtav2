@@ -215,7 +215,38 @@ def test_format_money() -> None:
     assert expense_service.format_money("3.5") == "3.50"
 
 
-def test_how_much_spending_on_google_not_line_items() -> None:
+def test_ask_year_and_average_phrases() -> None:
+    """'in 2025' must bound the year; average questions must not invent line items."""
+    from datetime import date as date_cls
+
+    phrase_google = "How much did I spend on Google in 2025?"
+    parsed = expense_service.parse_ask_query(phrase_google)
+    assert parsed["filter_type"] == "merchant"
+    assert str(parsed["filter_value"]).lower() == "google"
+    start, end = expense_service.period_bounds_for_query(
+        phrase_google, today=date_cls(2026, 7, 30)
+    )
+    assert start == date_cls(2025, 1, 1)
+    assert end == date_cls(2025, 12, 31)
+
+    avg_phrase = "What was my average spend per month in 2025?"
+    avg_parsed = expense_service.parse_ask_query(avg_phrase)
+    assert avg_parsed["intent"] == "average"
+    assert avg_parsed["filter_type"] == "none"
+    ans = expense_service.try_deterministic_answer(
+        {"intent": "average", "currency": "EUR", "filter": avg_parsed}
+    )
+    assert ans is not None
+    assert "average" in ans.lower() or "can’t" in ans.lower() or "can't" in ans.lower()
+
+
+def test_what_was_not_merchant_was() -> None:
+    """'What was …' must not parse merchant as 'was' via Wh**at **."""
+    parsed = expense_service.parse_ask_query(
+        "What was my average spend per month in 2025?"
+    )
+    assert parsed.get("filter_value") != "was"
+
     """Exact user phrase must hit Google Workspace merchant, not random SKUs.
 
     Regression: 'am'/'spending' tokens OR-matched CHAMPIGNONS / SCHWAMM via %am%.

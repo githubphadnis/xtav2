@@ -64,6 +64,14 @@ _STOPWORDS = frozenset(
         "and",
         "or",
         "tis",
+        "average",
+        "avg",
+        "mean",
+        "per",
+        "each",
+        "monthly",
+        "yearly",
+        "daily",
         # visit / count question noise
         "many",
         "times",
@@ -163,9 +171,16 @@ def search_tokens(q: str) -> list[str]:
 
 
 def period_bounds_for_query(q: str, *, today: date | None = None) -> tuple[date | None, date | None]:
-    """Map phrases like 'this month' to inclusive [start, end] dates."""
+    """Map phrases like 'this month' / 'in 2025' to inclusive [start, end] dates."""
     ql = (q or "").lower()
     day = today or datetime.now(ZoneInfo(get_settings().app_timezone)).date()
+
+    year_match = re.search(r"\b(?:in|for|during)\s+(20\d{2})\b", ql) or re.search(
+        r"\b(20\d{2})\b", ql
+    )
+    if year_match:
+        year = int(year_match.group(1))
+        return date(year, 1, 1), date(year, 12, 31)
 
     if re.search(r"\b(this month|mtd|current month)\b", ql):
         return day.replace(day=1), day
@@ -214,6 +229,17 @@ def parse_ask_query(q: str) -> dict[str, object]:
         }
 
     intent = "visits" if re.search(r"\b(how many|how often|number of|times)\b", ql) else "amount"
+    if re.search(r"\b(average|avg|mean)\b", ql) and re.search(
+        r"\b(month|monthly|week|weekly|day|daily|year|yearly)\b", ql
+    ):
+        return {
+            "intent": "average",
+            "filter_type": "none",
+            "filter_value": None,
+            "tokens": [],
+            "top_n": top_n,
+            "wants_items": False,
+        }
 
     for alias, category in _CATEGORY_ALIASES.items():
         if re.search(rf"\b{re.escape(alias)}\b", ql):
@@ -227,13 +253,13 @@ def parse_ask_query(q: str) -> dict[str, object]:
             }
 
     merchant_match = re.search(
-        r"(?:at|to|from|on)\s+(?:the\s+)?([a-z0-9][\w&.\-äöüß]{1,50})",
+        r"\b(?:at|to|from|on)\s+(?:the\s+)?([a-z0-9][\w&.\-äöüß]{1,50})",
         ql,
         re.IGNORECASE,
     )
     if merchant_match:
         entity = merchant_match.group(1).strip()
-        if entity.lower() not in _CATEGORY_ALIASES:
+        if entity.lower() not in _STOPWORDS and entity.lower() not in _CATEGORY_ALIASES:
             return {
                 "intent": intent,
                 "filter_type": "merchant",
@@ -447,6 +473,12 @@ def try_deterministic_answer(aggregate: dict[str, object]) -> str | None:
             parts.append(f"{i}. {label}: {amt} {ccy}{tail} ({when})")
         kind = "line items" if rows and rows[0].get("kind") == "line_item" else "expenses"
         return f"Top {n} most expensive {kind}: " + "; ".join(parts) + "."
+
+    if intent == "average":
+        return (
+            "I can’t compute average spend per month yet. "
+            "Try Insights for MoM totals, or ask “How much did I spend this month?”"
+        )
 
     line_matches = aggregate.get("line_matches")
     line_total = aggregate.get("line_total")
