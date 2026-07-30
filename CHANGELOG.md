@@ -17,8 +17,9 @@ versioning: [Semantic Versioning](https://semver.org/).
   date wins over LLM; unknown dates get `date:unparsed` + Pending warning ([#24](https://github.com/githubphadnis/xtav2/issues/24)).
 
 ### Added
-- Operator CLI `python -m app.tools.reimport_receipts --wipe --ocr --yes` to wipe
-  expenses and re-OCR files in `UPLOAD_DIR` ([#24](https://github.com/githubphadnis/xtav2/issues/24)).
+- Operator wipe+reimport: CLI and `POST /ops/reimport` (LAN / optional
+  `OPS_REIMPORT_TOKEN`) ([#24](https://github.com/githubphadnis/xtav2/issues/24)).
+- Pending list shows up to 200 drafts; nav badge uses real pending count.
 - Insights visuals: MoM/rolling 3-mo chart with amount peaks, hero key message,
   ranked category/merchant cards; Expenses / Ask as buttons; no list index bullets.
 - **Insights Phase 1** ([#20](https://github.com/githubphadnis/xtav2/issues/20), `FEATURE_TRENDS_UI`):

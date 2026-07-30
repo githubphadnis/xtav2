@@ -65,8 +65,16 @@ def _page_context(
     **extra: object,
 ) -> dict[str, object]:
     privacy = settings_store.privacy_local_only(db, settings)
+    pending_limit = 200 if active == "pending" else 20
     pending = (
-        expense_service.list_pending(db, limit=20) if settings.feature_receipt_ocr else []
+        expense_service.list_pending(db, limit=pending_limit)
+        if settings.feature_receipt_ocr
+        else []
+    )
+    pending_count = (
+        expense_service.count_expenses(db, status="pending")
+        if settings.feature_receipt_ocr
+        else 0
     )
     processing_count = (
         expense_service.count_expenses(db, status="processing")
@@ -82,7 +90,7 @@ def _page_context(
     ctx: dict[str, object] = {
         "request": request,
         "active": active,
-        "pending_count": len(pending),
+        "pending_count": pending_count,
         "processing_count": processing_count,
         "pending": pending,
         "line_items_by_expense": line_items_by_expense,
