@@ -153,9 +153,80 @@ app.mount("/uploads", StaticFiles(directory=str(uploads_path)), name="uploads")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
+def _client_is_private(request: Request) -> bool:
+    """True when the caller looks like RFC1918 / loopback (LAN operator)."""
+    host = (request.client.host if request.client else "") or ""
+    if host in {"127.0.0.1", "::1"} or host.startswith("127."):
+        return True
+    if host.startswith("10.") or host.startswith("192.168."):
+        return True
+    if host.startswith("172."):
+        try:
+            second = int(host.split(".")[1])
+        except (IndexError, ValueError):
+            return False
+        return 16 <= second <= 31
+    return False
+
+
 @app.get("/health/live")
 def health_live() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.post("/ops/reimport")
+async def ops_reimport(
+    request: Request,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, object]:
+    """Wipe expenses and re-OCR upload images (#24). Operator-only.
+
+    Body JSON: ``{"confirm":"WIPE_AND_REIMPORT","wipe":true,"ocr":true,"dry_run":false}``.
+    If ``OPS_REIMPORT_TOKEN`` is set, require ``Authorization: Bearer <token>``.
+    Otherwise only private LAN clients may call (same trust as host :4280 UI).
+    """
+    import secrets
+
+    from app.services.reimport import reimport_receipts
+
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    confirm = str(body.get("confirm") or "")
+    if confirm != "WIPE_AND_REIMPORT":
+        raise HTTPException(status_code=400, detail="confirm must be WIPE_AND_REIMPORT")
+
+    token = (settings.ops_reimport_token or "").strip()
+    if token:
+        auth = request.headers.get("authorization") or ""
+        expected = f"Bearer {token}"
+        if not secrets.compare_digest(auth, expected):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+    elif not _client_is_private(request):
+        raise HTTPException(status_code=403, detail="LAN or OPS_REIMPORT_TOKEN required")
+
+    dry_run = bool(body.get("dry_run"))
+    wipe = bool(body.get("wipe", True)) and not dry_run
+    run_ocr = bool(body.get("ocr", True)) and not dry_run
+    result = await reimport_receipts(
+        db,
+        settings=settings,
+        wipe=wipe,
+        run_ocr=run_ocr,
+        dry_run=dry_run,
+    )
+    return {
+        "status": "ok",
+        "wiped": result.wiped,
+        "files_found": result.files_found,
+        "enqueued": result.enqueued,
+        "ocr_done": result.ocr_done,
+        "ocr_warnings": result.ocr_warnings,
+        "skipped": result.skipped,
+    }
 
 
 @app.get("/health/db")

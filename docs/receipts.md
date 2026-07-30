@@ -50,6 +50,21 @@ python -m app.tools.reimport_receipts --dry-run
 python -m app.tools.reimport_receipts --wipe --ocr --yes
 ```
 
+Or from the LAN (host `:4280`), after Pull/redeploy:
+
+```bash
+curl -sS -X POST http://<notcoolio>:4280/ops/reimport \
+  -H "Content-Type: application/json" \
+  -d '{"confirm":"WIPE_AND_REIMPORT","dry_run":true}'
+
+curl -sS -X POST http://<notcoolio>:4280/ops/reimport \
+  -H "Content-Type: application/json" \
+  -d '{"confirm":"WIPE_AND_REIMPORT","wipe":true,"ocr":true}'
+```
+
+If `OPS_REIMPORT_TOKEN` is set in Portainer, also send `Authorization: Bearer <token>`.
+Without a token, only private LAN clients may call (same trust as the open LAN UI).
+
 5. Open **Pending** — check each `spent_on` against the printed `Datum`, then confirm.
 6. Re-import bank CSV if needed (`/bank`).
 

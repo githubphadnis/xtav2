@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     upload_dir: str = "uploads"
     max_upload_size_mb: int = 10
 
+    # Operator wipe+reimport (#24). Empty = LAN private-IP + confirm body only.
+    ops_reimport_token: str = ""
+
     feature_manual_entry: bool = True
     feature_multi_currency: bool = True
     feature_ollama_qa: bool = True
