@@ -9,7 +9,7 @@
     {{ key_message }}
   </p>
   <div class="insight-actions">
-    <a class="btn btn-primary btn-inline" href="/?start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">Ledger</a>
+    <a class="btn btn-primary btn-inline" href="/?start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">Expenses</a>
     {% if settings.feature_ollama_qa %}
     <a class="btn btn-ghost btn-inline" href="/ask?q={{ 'How much did I spend this month?'|urlencode }}">Ask</a>
     {% endif %}
@@ -37,7 +37,7 @@
       <p class="pulse-amt">{{ format_money(pulse.this_month.total) }} <span class="pulse-ccy">{{ pulse.currency }}</span></p>
       <p class="item-meta">{{ pulse.this_month.count }} expenses</p>
       <div class="insight-actions insight-actions-tight">
-        <a class="btn btn-primary btn-inline" href="/?start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">Ledger</a>
+        <a class="btn btn-primary btn-inline" href="/?start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">Expenses</a>
         {% if settings.feature_ollama_qa %}
         <a class="btn btn-ghost btn-inline" href="/ask?q={{ 'How much did I spend this month?'|urlencode }}">Ask</a>
         {% endif %}
@@ -48,7 +48,7 @@
       <p class="pulse-amt pulse-amt-muted">{{ format_money(pulse.last_month.total) }} <span class="pulse-ccy">{{ pulse.currency }}</span></p>
       <p class="item-meta">{{ pulse.last_month.count }} expenses</p>
       <div class="insight-actions insight-actions-tight">
-        <a class="btn btn-ghost btn-inline" href="/?start={{ pulse.last_month.start }}&amp;end={{ pulse.last_month.end }}">Ledger</a>
+        <a class="btn btn-ghost btn-inline" href="/?start={{ pulse.last_month.start }}&amp;end={{ pulse.last_month.end }}">Expenses</a>
       </div>
     </div>
   </div>
@@ -70,7 +70,7 @@
         <span class="bar-amt">{{ format_money(row.total) }}</span>
       </a>
       <div class="insight-actions insight-actions-tight">
-        <a class="btn btn-ghost btn-inline" href="/?category={{ row.key|urlencode }}&amp;start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">Ledger</a>
+        <a class="btn btn-ghost btn-inline" href="/?category={{ row.key|urlencode }}&amp;start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">Expenses</a>
         {% if settings.feature_ollama_qa %}
         <a class="btn btn-ghost btn-inline" href="/ask?q={{ ('How much on ' ~ row.key ~ ' this month?')|urlencode }}">Ask</a>
         {% endif %}
@@ -99,7 +99,7 @@
         <span class="bar-amt">{{ format_money(row.total) }}</span>
       </a>
       <div class="insight-actions insight-actions-tight">
-        <a class="btn btn-ghost btn-inline" href="/?merchant={{ row.key|urlencode }}&amp;start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">Ledger</a>
+        <a class="btn btn-ghost btn-inline" href="/?merchant={{ row.key|urlencode }}&amp;start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">Expenses</a>
       </div>
     </li>
     {% endfor %}

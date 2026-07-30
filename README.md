@@ -38,7 +38,7 @@ See `docs/feature-flags.md`, `docs/mcp.md`, `docs/deploy-portainer.md`.
 
 | Module | Flag | Entry |
 |--------|------|--------|
-| Ledger / Add | `FEATURE_MANUAL_ENTRY` | `/`, `/add` |
+| Expenses / Add | `FEATURE_MANUAL_ENTRY` | `/`, `/add` |
 | Capture / Pending | `FEATURE_RECEIPT_OCR` | `/capture`, `/pending` |
 | Ask | `FEATURE_OLLAMA_QA` | `/ask` |
 | Insights | `FEATURE_TRENDS_UI` | `/insights` |

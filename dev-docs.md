@@ -4,7 +4,7 @@
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
-| 2026-07-27 | Insights goals A–D one product, 4 phases | `docs/insights.md`; #20→#23 |
+| 2026-07-30 | Operator wipe+reimport from UPLOAD_DIR (CLI, not public UI) | #24; no auth yet — avoid Settings wipe |
 | 2026-07-27 | Receipt spent_on from printed OCR, not upload day | Rule 15 + #24; agent_rules |
 | 2026-07-27 | Insights vertical bars use rem height not % | % height collapsed in flex layout |
 | 2026-07-26 | New repo `xtav2` (not evolve classic `xta` in place) | Clean cOcO Governed reboot; public goal; avoid carrying unfinished XTA debt |

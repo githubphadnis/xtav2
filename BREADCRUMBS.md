@@ -1,5 +1,18 @@
 ﻿# Breadcrumbs — xtav2
 
+## Session: 2026-07-30 (Expenses rename + reimport CLI)
+
+- Renamed user-facing **Ledger → Expenses** (nav, page title, Insights buttons).
+- Added `python -m app.tools.reimport_receipts` for wipe + re-OCR from uploads (#24).
+- **Not pushed yet** — need commit/push → GHCR → Portainer → dry-run → wipe --ocr --yes.
+- Wipe deletes all expenses (manual/bank too); keeps `xtav2_uploads` volume.
+
+## Session: 2026-07-29 (personal planning → daily_schedule)
+
+- Personal schedule/printables moved out of xtav2 into local project
+  `C:\projects\daily_schedule` (no GitHub remote yet).
+- Removed `docs/personal/` from this repo; xtav2 stays product-only.
+
 ## Session end: 2026-07-27 (handoff for tomorrow)
 
 - **Stop point for next chat:** redeploy, verify Insights **3-month rem bars** show,

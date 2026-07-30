@@ -6,6 +6,9 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Nav and Insights buttons: **Ledger** → **Expenses**; brand sub “expense tracker”.
+
 ### Fixed
 - Insights rolling 3-month chart: use `rem` bar heights (CSS `%` collapsed → invisible).
 - Ask: “top 5 most expensive items this month” now returns ranked line items
@@ -14,8 +17,10 @@ versioning: [Semantic Versioning](https://semver.org/).
   date wins over LLM; unknown dates get `date:unparsed` + Pending warning ([#24](https://github.com/githubphadnis/xtav2/issues/24)).
 
 ### Added
+- Operator CLI `python -m app.tools.reimport_receipts --wipe --ocr --yes` to wipe
+  expenses and re-OCR files in `UPLOAD_DIR` ([#24](https://github.com/githubphadnis/xtav2/issues/24)).
 - Insights visuals: MoM/rolling 3-mo chart with amount peaks, hero key message,
-  ranked category/merchant cards; Ledger / Ask as buttons; no list index bullets.
+  ranked category/merchant cards; Expenses / Ask as buttons; no list index bullets.
 - **Insights Phase 1** ([#20](https://github.com/githubphadnis/xtav2/issues/20), `FEATURE_TRENDS_UI`):
   `/insights` MoM pulse, category + merchant bars; tap → ledger filter or Ask preload.
 - **Bank CSV import + reconcile** ([#17](https://github.com/githubphadnis/xtav2/issues/17), `FEATURE_BANK_IMPORT`):

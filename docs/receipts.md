@@ -28,7 +28,30 @@ Resolution order (`app/services/receipts.py`):
 2. LLM `spent_on` if valid
 3. Last resort: today + note `date:unparsed` (Pending warns — fix before confirm)
 
-Existing rows already stored with upload dates stay wrong until edited or re-scanned.
+Existing rows already stored with upload dates stay wrong until edited or re-scanned
+(or wiped + reimported — see below).
+
+## Reset + reimport (fix wrong dates, #24)
+
+Keeps the **uploads volume**; deletes **all expense rows** (manual + bank + receipt).
+Bank CSV must be re-imported afterward if you use it.
+
+1. Deploy image that includes `app.tools.reimport_receipts`.
+2. Confirm Google Vision effective (Settings) so OCR quality matches Capture.
+3. Dry-run inside the app container:
+
+```bash
+python -m app.tools.reimport_receipts --dry-run
+```
+
+4. Wipe + re-OCR (destructive — requires `--yes`):
+
+```bash
+python -m app.tools.reimport_receipts --wipe --ocr --yes
+```
+
+5. Open **Pending** — check each `spent_on` against the printed `Datum`, then confirm.
+6. Re-import bank CSV if needed (`/bank`).
 
 ## Portainer (good line-item quality)
 
@@ -52,7 +75,7 @@ On create/update of pending/posted expenses, xtav2 computes a fingerprint from
 A newer matching row is linked via ``duplicate_of_id`` (not auto-deleted).
 
 - **Ask / totals:** active duplicates (linked and not dismissed) are excluded.
-- **UI:** Pending and Ledger warn; **Not a duplicate** dismisses the flag.
+- **UI:** Pending and Expenses warn; **Not a duplicate** dismisses the flag.
 - **Rescan:** on app startup for recent rows (catch-up after deploy).
 
 Empty merchant with no line items → no fingerprint (avoids false matches).

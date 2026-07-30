@@ -20,10 +20,10 @@
 ## What Phase 1 shows today
 
 1. **Hero key message** — MoM comparator text (“You spent X more…”).
-2. **Ledger / Ask buttons** on hero and slices (not plain text links).
+2. **Expenses / Ask buttons** on hero and slices (not plain text links).
 3. **Rolling 3-month vertical bar chart** — oldest→newest; current month = MTD;
    prior months = full calendar months. Peak labels = `format_money` + currency.
-   Tap column → ledger filtered to that window.
+   Tap column → expenses list filtered to that window.
 4. **MTD vs same-days-last-month** detail cards.
 5. **Category + merchant** horizontal bars (no rank numbers).
 6. Aggregates use `amount_base` when multi-currency; same duplicate exclusion as Ask.

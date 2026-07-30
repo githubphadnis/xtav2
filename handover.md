@@ -2,7 +2,7 @@
 
 ## Last Worked On Date
 
-2026-07-27 (evening) — stop here for next session
+2026-07-30 — Expenses rename + #24 reimport CLI (awaiting deploy + wipe on prod)
 
 ## Live
 
@@ -23,6 +23,12 @@
 | FX | `FEATURE_MULTI_CURRENCY` | Frankfurter/ECB → `amount_base` (#19 shipped) |
 | Duplicates | always on for posted | #16 — fingerprint; not bank↔receipt |
 
+### Local (not pushed yet)
+
+- UI: **Ledger → Expenses** (nav, page, Insights buttons); brand sub “tracker”.
+- Operator CLI: `python -m app.tools.reimport_receipts --wipe --ocr --yes` (#24).
+  Keeps `xtav2_uploads`; deletes all expense rows. Docs: `docs/receipts.md`.
+
 ### Portainer flags to enable (if not already)
 
 ```env
@@ -39,28 +45,28 @@ Confirm: `GET /health/flags` and Settings “Google Vision effective = yes”.
 
 ## Broken Things / Known gaps
 
-1. **Insights 3-month chart looked empty** — CSS `%` bar height collapsed; fixed to
-   `rem` heights in latest commit — **redeploy** before judging visuals.
-2. **Existing `spent_on` rows** may still be upload-day from before #24 — need
-   manual edit or re-OCR repair (#24 remaining work).
-3. **Ask tone** cold / hit-miss — #23 optional cloud LLM + savings coach.
-4. **#9 mass upload** parked (`docs/mass-ingest.md`).
-5. **#14 security**, **#15 lenai platform** open.
-6. Rank bullets removed from Insights lists (user request); chart peaks show amounts.
+1. **Prod still has upload-day `spent_on`** until wipe+reimport runs on notcoolio.
+2. **Ask tone** cold / hit-miss — #23 optional cloud LLM + savings coach.
+3. **#9 mass upload** parked (`docs/mass-ingest.md`).
+4. **#14 security**, **#15 lenai platform** open.
+5. Wipe removes manual + bank rows too — re-import bank CSV after receipts confirmed.
 
 ## Product decisions locked
 
 - Insights goals **A–D all in scope** — phased in `docs/insights.md`.
 - Bank + receipt = **enrich one row**, never double-count (#17 vs #16).
 - Spend date = **printed receipt**, never silent upload day (#24 + agent_rules).
+- User-facing list name = **Expenses** (not Ledger).
 
-## Next Immediate Steps (tomorrow)
+## Next Immediate Steps
 
-1. Pull latest `main` / redeploy Portainer image.
-2. Open Insights — confirm **3 vertical bars with € peaks** visible.
-3. Spot-check a new Capture: Pending date matches receipt `Datum`.
-4. Ask: `top 5 most expensive items this month` (needs line items).
-5. Optional: #24 re-OCR repair for old wrong dates; then Phase 2 (#23) or #17 smoke.
+1. Commit + push local changes; wait for GHCR `main` publish.
+2. Portainer pull/redeploy; confirm nav says **Expenses**.
+3. App container console:
+   - `python -m app.tools.reimport_receipts --dry-run`
+   - `python -m app.tools.reimport_receipts --wipe --ocr --yes`
+4. Pending: verify each printed `Datum`, confirm; re-import bank CSV if used.
+5. Spot-check Insights MoM after confirm.
 
 ## Key doc index
 
@@ -69,7 +75,7 @@ Confirm: `GET /health/flags` and Settings “Google Vision effective = yes”.
 | `AGENTS.md` | Entrypoint |
 | `docs/insights.md` | Insights design + chart note |
 | `docs/bank-reconcile.md` | Bank↔receipt rules |
-| `docs/receipts.md` | OCR + spend date rules |
+| `docs/receipts.md` | OCR + spend date + **reimport CLI** |
 | `docs/feature-flags.md` | All `FEATURE_*` |
 | `docs/deploy-portainer.md` | Deploy |
 | `BREADCRUMBS.md` | Session trail |

@@ -15,7 +15,7 @@
   <div class="shell">
     <header class="top">
       <p class="brand">xtav2</p>
-      <p class="brand-sub">Local-first expense ledger</p>
+      <p class="brand-sub">Local-first expense tracker</p>
     </header>
 
     {% if flash %}
@@ -29,7 +29,7 @@
     <div class="nav-inner">
       <a href="/" class="{% if active == 'ledger' %}is-active{% endif %}">
         <span class="icon" aria-hidden="true">≡</span>
-        Ledger
+        Expenses
       </a>
       {% if settings.feature_manual_entry %}
       <a href="/add" class="{% if active == 'add' %}is-active{% endif %}">
