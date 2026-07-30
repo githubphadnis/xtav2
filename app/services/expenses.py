@@ -156,6 +156,14 @@ def expand_product_tokens(tokens: list[str]) -> list[str]:
     return out
 
 
+def _is_product_term(word: str) -> bool:
+    """True when word is a known product Ask synonym (chocolate, kebab, …)."""
+    key = word.casefold()
+    if key in _PRODUCT_SYNONYMS:
+        return True
+    return any(key == syn.casefold() for syns in _PRODUCT_SYNONYMS.values() for syn in syns)
+
+
 def search_tokens(q: str) -> list[str]:
     """Extract meaningful tokens from a natural-language spend question."""
     tokens = re.findall(r"[A-Za-z0-9ÄÖÜäöüß]{2,}", q or "")
@@ -259,7 +267,19 @@ def parse_ask_query(q: str) -> dict[str, object]:
     )
     if merchant_match:
         entity = merchant_match.group(1).strip()
-        if entity.lower() not in _STOPWORDS and entity.lower() not in _CATEGORY_ALIASES:
+        el = entity.lower()
+        if el not in _STOPWORDS and el not in _CATEGORY_ALIASES:
+            # "on Schokolade/kebab" is a product Ask, not a merchant name.
+            if _is_product_term(entity):
+                product_tokens = expand_product_tokens([entity])
+                return {
+                    "intent": intent,
+                    "filter_type": "tokens",
+                    "filter_value": None,
+                    "tokens": product_tokens,
+                    "top_n": top_n,
+                    "wants_items": False,
+                }
             return {
                 "intent": intent,
                 "filter_type": "merchant",
