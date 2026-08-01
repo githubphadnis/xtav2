@@ -10,6 +10,9 @@ versioning: [Semantic Versioning](https://semver.org/).
 - Nav and Insights buttons: **Ledger** → **Expenses**; brand sub “expense tracker”.
 
 ### Fixed
+- Ask: “on Google” → merchant filter; calendar year `in 2025`; refuse average/month
+  honestly; product synonyms after “on” (Schokolade) stay line-item Ask; stop
+  Wh**at was** / `%am%` / `%per%` false matches.
 - Insights rolling 3-month chart: use `rem` bar heights (CSS `%` collapsed → invisible).
 - Ask: “top 5 most expensive items this month” now returns ranked line items
   (deterministic; respects this-month window) instead of a generic LLM reply.

@@ -4,6 +4,9 @@
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-07-30 | Ask ledger-first; merchant `\b`; year YYYY; refuse average | Exact user phrases; verify via Expenses filter |
+| 2026-07-30 | Non-spend `family`/`savings` excluded from Ask/Insights | #27; bank auto-tag |
+| 2026-07-30 | Operator wipe+reimport (CLI + LAN `/ops`) | #24; prefer OPS token later |
 | 2026-07-30 | Ask “on Google” → merchant filter; stop short token OR on lines | Production-Path: exact user phrase test |
 | 2026-07-27 | Receipt spent_on from printed OCR, not upload day | Rule 15 + #24; agent_rules |
 | 2026-07-27 | Insights vertical bars use rem height not % | % height collapsed in flex layout |
@@ -21,6 +24,8 @@
 
 | Date | Error | Solution |
 |------|-------|----------|
+| 2026-07-30 | Ask Google / average / Wh'at was / %per% junk | Merchant `\b`, year bounds, refuse average, product vs merchant |
+| 2026-07-30 | CI fail: on Schokolade as merchant | Product synonym after “on” → tokens/line items |
 | 2026-07-27 | Insights 3-mo chart invisible | CSS `%` bar height → use `bar_height_rem` |
 | 2026-07-27 | Receipt dates = upload day | OCR `Datum` parse first; never silent today; #24 |
 | 2026-07-27 | CI fail after FX/bank | Pin ruff 0.16.x + lint cleanups |

@@ -1,16 +1,25 @@
 ﻿# Breadcrumbs — xtav2
 
+## Session: 2026-08-01 (docs sync)
+
+- Confirmed docs lag: handover still described 108 Pending; Ask trust fixes not in CHANGELOG.
+- Syncing handover / breadcrumbs / changelog to `166ed2d` (CI green).
+
+## Session: 2026-07-30 (Ask trust + CI)
+
+- Ask: `on Google` merchant; stop `%am%` line noise; `\b` before at/on (Wh**at was**);
+  calendar year `in 2025`; honest refuse for average/month; product vs merchant for Schokolade.
+- CI red then fixed (`166ed2d`); Docker Publish green.
+- Verify Google via Expenses filter — Ask 2764€/116 visits was false (~435€ / 16 rows).
+
 ## Session: 2026-07-30 (afternoon status)
 
-- Non-spend transfers: `family` / `savings` excluded from Ask/Insights (#27).
-- User cleared Pending manually; bulk UX deferred → #26 approve, #25 delete.
-- Bank: CSV via Settings → `/bank` only; PDF via Capture fails (images only).
-- Redeploy in progress for pending-list fix.
+- Non-spend transfers #27; bulk UX → #25/#26; bank = CSV `/bank` not Capture/PDF.
+- Pending cleared by user; bank re-imported.
 
 ## Session: 2026-07-30 (ship Expenses + prod #24 wipe)
 
-- Expenses rename + reimport; LAN `/ops/reimport`; 108 pending OCR’d.
-- Pending list/badge fix on `main` (`ccee99d`+).
+- Expenses rename + reimport; LAN `/ops/reimport`; 108 OCR → pending then confirmed.
 
 ## Session: 2026-07-29 (personal planning → daily_schedule)
 

@@ -2,30 +2,32 @@
 
 ## Last Worked On Date
 
-2026-07-30 — Expenses rename shipped; #24 wipe+reimport OCR done on prod
+2026-08-01 — docs sync; Ask trust fixes green on `main` (`166ed2d`)
 
 ## Live
 
 - **URL:** https://xta.pphadnis.com/
 - **Repo:** https://github.com/githubphadnis/xtav2 · branch `main`
-- **Image:** `ghcr.io/githubphadnis/xtav2:main` (commit `3235eea`+; pull after pending-limit fix)
+- **Image:** `ghcr.io/githubphadnis/xtav2:main` (pull through `166ed2d`+)
 
 ## Current State / WIP
 
-### Prod after wipe (2026-07-30)
+### Prod (as of end of 2026-07-30 session)
 
-- Expenses wiped (100 rows) + **108** upload images re-OCR’d → all **pending**
-- Spot-check: printed dates spread across Jul 18–27 (not upload-day cluster)
-- ~2 `date:unparsed` on first Pending page — fix those before confirm
-- **You:** confirm Pending queue (badge was capped at 20 — fix pushing), then bank CSV if needed
+- #24 wipe+reimport done; Pending cleared by user
+- Bank CSV re-imported; family/savings transfers tagged (#27)
+- Insights in use (July skewed after wipe — expected to normalize)
+- Ask: ledger-first; do **not** trust LLM phrasing without Expenses filter check
 
-### Shipped
+### Shipped recently
 
 | Area | Notes |
 |------|--------|
-| Expenses rename | Nav / page / Insights buttons |
-| #24 reimport | CLI + `POST /ops/reimport` (LAN / optional token) |
-| Insights / bank / FX / dups | As before |
+| Expenses rename | Nav / page / Insights |
+| #24 reimport | CLI + `POST /ops/reimport` |
+| #27 non-spend | `family` / `savings` excluded from Ask + Insights |
+| Ask fixes | `on Google` merchant; year `in 2025`; refuse average; product vs merchant |
+| Bulk UX | Tracked only — [#25](https://github.com/githubphadnis/xtav2/issues/25) delete, [#26](https://github.com/githubphadnis/xtav2/issues/26) approve |
 
 ### Portainer flags
 
@@ -41,23 +43,26 @@ GOOGLE_VISION_API_KEY=<secret>
 
 ## Broken Things / Known gaps
 
-1. **108 Pending** await human confirm (printed Datum check).
-2. Bank rows wiped — re-import CSV at `/bank` if you still use statements.
-3. Ask tone / #23; mass upload #9; security #14; lenai #15.
-4. Agent has no SSH key for notcoolio — used LAN `/ops/reimport` after Portainer pull.
+1. Ask still weak for averages / complex NL — verify via Expenses filters
+2. Bank PDF not supported — CSV only at Settings → `/bank`
+3. Capture = receipt **images** only (not statements)
+4. #9 mass upload, #14 security, #15 lenai, #23 cloud Ask — open
+5. No SSH from agent to notcoolio — LAN `:4280` / Portainer console for ops
 
 ## Next Immediate Steps
 
-1. Pull latest image (pending list limit + accurate badge count).
-2. Open Pending — confirm dates (fix `date:unparsed` first); work through all 108.
-3. Re-import bank CSV if needed; spot-check Insights.
-4. Optionally set `OPS_REIMPORT_TOKEN` and treat `/ops/reimport` as token-only.
+1. Confirm Portainer image ≥ `166ed2d` (Ask + CI fix)
+2. Spot-check Ask: `How much did I spend on Google in 2025?` vs Expenses `?merchant=Google&start=2025-01-01&end=2025-12-31`
+3. Later: bulk Pending [#26] / bulk delete [#25]; Ask quality backlog
 
 ## Key doc index
 
 | Doc | Purpose |
 |-----|---------|
-| `docs/receipts.md` | OCR + reimport CLI / `/ops/reimport` |
+| `docs/receipts.md` | OCR + reimport |
+| `docs/bank-reconcile.md` | Bank CSV + non-spend transfers |
+| `docs/insights.md` | Insights phases |
 | `handover.md` | This file |
 | `BREADCRUMBS.md` | Session trail |
 | `ROADMAP.md` | Issues / phases |
+| `CHANGELOG.md` | Unreleased notes |

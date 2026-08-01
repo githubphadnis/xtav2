@@ -26,7 +26,8 @@
    Tap column → expenses list filtered to that window.
 4. **MTD vs same-days-last-month** detail cards.
 5. **Category + merchant** horizontal bars (no rank numbers).
-6. Aggregates use `amount_base` when multi-currency; same duplicate exclusion as Ask.
+6. Aggregates use `amount_base` when multi-currency; exclude active duplicates **and**
+   non-spend categories (`family` / `savings` — see `docs/bank-reconcile.md`).
 
 ### Chart implementation note (2026-07-27)
 
