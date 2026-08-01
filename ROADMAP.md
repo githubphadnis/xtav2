@@ -99,4 +99,5 @@ One mobile **Insights** product covering goals A–D (see `docs/insights.md`):
 
 ## Ask quality (cross-cutting)
 
+- See [`docs/ask.md`](./docs/ask.md) — ledger-first; verify via Expenses filters.
 - Optional public/cloud LLM beside Ollama ([#23](https://github.com/githubphadnis/xtav2/issues/23)) — Insights Phase 2 voice; privacy toggle must block cloud when local-only

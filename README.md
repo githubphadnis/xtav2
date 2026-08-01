@@ -45,7 +45,8 @@ See `docs/feature-flags.md`, `docs/mcp.md`, `docs/deploy-portainer.md`.
 | Bank CSV | `FEATURE_BANK_IMPORT` | `/bank` (via Settings) |
 | MCP | `FEATURE_MCP` | stdio / SSE process |
 
-Design notes: `docs/insights.md`, `docs/receipts.md`, `docs/bank-reconcile.md`.  
+Design notes: `docs/insights.md`, `docs/receipts.md`, `docs/bank-reconcile.md`,
+`docs/ask.md` (Ask quality is weak — verify via Expenses).  
 **Agent handoff:** start at `handover.md` + `BREADCRUMBS.md`.
 
 ## Deployment Steps

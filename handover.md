@@ -2,7 +2,7 @@
 
 ## Last Worked On Date
 
-2026-08-01 — docs sync; Ask trust fixes green on `main` (`166ed2d`)
+2026-08-01 — `docs/ask.md` added; project docs synced; session stop (human restart)
 
 ## Live
 
@@ -51,14 +51,15 @@ GOOGLE_VISION_API_KEY=<secret>
 
 ## Next Immediate Steps
 
-1. Confirm Portainer image ≥ `166ed2d` (Ask + CI fix)
-2. Spot-check Ask: `How much did I spend on Google in 2025?` vs Expenses `?merchant=Google&start=2025-01-01&end=2025-12-31`
-3. Later: bulk Pending [#26] / bulk delete [#25]; Ask quality backlog
+1. After restart: confirm Portainer image ≥ `166ed2d`; read `docs/ask.md`.
+2. Spot-check Ask vs Expenses filter for Google / 2025 if not done.
+3. Later: bulk Pending [#26] / bulk delete [#25]; Ask quality / #23.
 
 ## Key doc index
 
 | Doc | Purpose |
 |-----|---------|
+| `docs/ask.md` | Ask: ledger-first, known failures, how to verify |
 | `docs/receipts.md` | OCR + reimport |
 | `docs/bank-reconcile.md` | Bank CSV + non-spend transfers |
 | `docs/insights.md` | Insights phases |

@@ -59,4 +59,5 @@ docker compose up --build
 ## Canonical artifacts
 
 `project-manifest.md`, `README.md`, `dev-docs.md`, `handover.md`, `BREADCRUMBS.md`,
-`ROADMAP.md`, `CHANGELOG.md`.
+`ROADMAP.md`, `CHANGELOG.md`, `docs/ask.md`, `docs/insights.md`, `docs/receipts.md`,
+`docs/bank-reconcile.md`, `docs/feature-flags.md`, `docs/deploy-portainer.md`.

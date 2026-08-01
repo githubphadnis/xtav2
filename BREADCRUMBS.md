@@ -1,9 +1,16 @@
 ﻿# Breadcrumbs — xtav2
 
+## Session end: 2026-08-01 (restart)
+
+- Added `docs/ask.md` (honest: Ask often shit; ledger-first; verify via Expenses).
+- Wired into README / handover / ROADMAP / CHANGELOG.
+- **Stop:** human restart. Next agent: read `handover.md` + `docs/ask.md`.
+- Image target: `main` ≥ `166ed2d` (Ask fixes); docs commit after.
+
 ## Session: 2026-08-01 (docs sync)
 
 - Confirmed docs lag: handover still described 108 Pending; Ask trust fixes not in CHANGELOG.
-- Syncing handover / breadcrumbs / changelog to `166ed2d` (CI green).
+- Synced handover / breadcrumbs / changelog to prod + Ask state.
 
 ## Session: 2026-07-30 (Ask trust + CI)
 

@@ -20,6 +20,7 @@ versioning: [Semantic Versioning](https://semver.org/).
   date wins over LLM; unknown dates get `date:unparsed` + Pending warning ([#24](https://github.com/githubphadnis/xtav2/issues/24)).
 
 ### Added
+- Ask design note `docs/ask.md` (ledger-first; honesty about weak NL quality).
 - Non-spend transfers: bank lines matching family (Rashmi/NRE) or savings (pocket /
   Loose Change) get categories `family` / `savings` and are excluded from Ask +
   Insights ([#27](https://github.com/githubphadnis/xtav2/issues/27)).
