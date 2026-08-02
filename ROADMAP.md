@@ -44,6 +44,7 @@
 | [#25](https://github.com/githubphadnis/xtav2/issues/25) | Bulk delete expenses / Pending |
 | [#26](https://github.com/githubphadnis/xtav2/issues/26) | Bulk approve Pending |
 | [#27](https://github.com/githubphadnis/xtav2/issues/27) | Non-spend transfers (`family` / `savings`) — **shipped** |
+| [#28](https://github.com/githubphadnis/xtav2/issues/28) | Mass rename find/replace (merchant / note / line items) |
 
 ### Closed (V1.0 / V1.1 partial)
 

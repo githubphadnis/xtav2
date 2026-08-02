@@ -35,6 +35,7 @@ def flag_snapshot(
         "FEATURE_MCP": s.feature_mcp,
         "FEATURE_RECEIPT_OCR": s.feature_receipt_ocr,
         "FEATURE_MASS_UPLOAD": s.feature_mass_upload,
+        "FEATURE_MASS_RENAME": s.feature_mass_rename,
         "FEATURE_OCR_OLLAMA_VISION": s.feature_ocr_ollama_vision,
         "FEATURE_OCR_GOOGLE_VISION": s.feature_ocr_google_vision,
         "FEATURE_OCR_GOOGLE_VISION_EFFECTIVE": google_effective,

@@ -30,10 +30,12 @@ from app.db import get_db, get_session_factory, init_db
 from app.features import flag_snapshot, require_flag
 from app.integrations.ollama import list_models
 from app.services import expenses as expense_service
+from app.services import mass_rename as mass_rename_service
 from app.services import settings_store
 from app.services.duplicates import count_active_duplicates, dismiss_duplicate
 from app.services.expenses import format_money
 from app.services.fx import COMMON_CURRENCIES, fx_health
+from app.services.mass_rename import MassRenameError
 from app.services.receipts import (
     enqueue_receipt_upload,
     finalize_receipt_ocr,
@@ -505,6 +507,95 @@ def settings_page(
         "settings.html",
         _page_context(request=request, db=db, settings=settings, active="settings"),
     )
+
+
+@app.get("/rename", response_class=HTMLResponse)
+def rename_page(
+    request: Request,
+    flash: str | None = None,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> HTMLResponse:
+    if not require_flag("FEATURE_MASS_RENAME", settings):
+        raise HTTPException(status_code=404, detail="Mass rename disabled")
+    return templates.TemplateResponse(
+        request,
+        "rename.html",
+        _page_context(
+            request=request,
+            db=db,
+            settings=settings,
+            active="settings",
+            flash=flash,
+            find="",
+            replace="",
+            preview=None,
+        ),
+    )
+
+
+@app.post("/rename/preview", response_class=HTMLResponse)
+def rename_preview(
+    request: Request,
+    find: str = Form(""),
+    replace: str = Form(""),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> HTMLResponse:
+    if not require_flag("FEATURE_MASS_RENAME", settings):
+        raise HTTPException(status_code=404, detail="Mass rename disabled")
+    try:
+        preview = mass_rename_service.preview_rename(
+            db,
+            find=find,
+            include_line_items=settings.feature_line_items,
+        )
+        error: str | None = None
+    except MassRenameError as exc:
+        preview = None
+        error = str(exc)
+    return templates.TemplateResponse(
+        request,
+        "rename.html",
+        _page_context(
+            request=request,
+            db=db,
+            settings=settings,
+            active="settings",
+            flash=error,
+            find=find,
+            replace=replace,
+            preview=preview,
+        ),
+    )
+
+
+@app.post("/rename/apply")
+def rename_apply(
+    find: str = Form(""),
+    replace: str = Form(""),
+    confirm: str | None = Form(None),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> RedirectResponse:
+    if not require_flag("FEATURE_MASS_RENAME", settings):
+        raise HTTPException(status_code=404, detail="Mass rename disabled")
+    confirmed = confirm in {"1", "true", "on", "yes"}
+    try:
+        result = mass_rename_service.apply_rename(
+            db,
+            find=find,
+            replace=replace,
+            confirm=confirmed,
+            include_line_items=settings.feature_line_items,
+        )
+        msg = (
+            f"Renamed {result.fields_changed} field(s) "
+            f"on {result.expenses_touched} expense(s)."
+        )
+    except MassRenameError as exc:
+        msg = str(exc)
+    return RedirectResponse(url=f"/rename?flash={quote(msg)}", status_code=303)
 
 
 @app.get("/bank", response_class=HTMLResponse)

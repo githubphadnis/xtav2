@@ -31,6 +31,7 @@ home lab: GitHub → GHCR → Portainer (`notcoolio`) → Cloudflare.
 **Included (flags ON by default):**
 
 - Manual expense entry **and delete** (amount, currency, merchant, category, date, note)
+- **Mass rename** (find/replace merchant, note, line-item text) — `FEATURE_MASS_RENAME`
 - Expense list + filter (mobile-first UI)
 - Multi-currency: store original amount/currency + base-currency amount
 - Natural-language spend Q&A via Ollama (`lenai`) — model must exist on host

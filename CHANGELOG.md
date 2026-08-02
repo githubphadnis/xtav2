@@ -20,6 +20,9 @@ versioning: [Semantic Versioning](https://semver.org/).
   date wins over LLM; unknown dates get `date:unparsed` + Pending warning ([#24](https://github.com/githubphadnis/xtav2/issues/24)).
 
 ### Added
+- **Mass rename** ([#28](https://github.com/githubphadnis/xtav2/issues/28), `FEATURE_MASS_RENAME`):
+  Settings → `/rename` find/replace on merchant, note, and line items; MCP
+  `mass_rename` (dry_run preview / apply). Irreversible; preview required in UI.
 - Ask design note `docs/ask.md` (ledger-first; honesty about weak NL quality).
 - Non-spend transfers: bank lines matching family (Rashmi/NRE) or savings (pocket /
   Loose Change) get categories `family` / `savings` and are excluded from Ask +

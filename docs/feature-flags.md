@@ -11,6 +11,7 @@ Every module is gated by an environment variable. Flags are booleans parsed from
 | `FEATURE_MCP` | `true` | MCP server process / tools |
 | `FEATURE_RECEIPT_OCR` | `false` | Receipt photo / camera ingest + pending queue |
 | `FEATURE_MASS_UPLOAD` | `false` | Bulk ingest from a directory / multi-file upload |
+| `FEATURE_MASS_RENAME` | `true` | Find/replace merchant, note, line-item text (`/rename`) |
 | `FEATURE_OCR_OLLAMA_VISION` | `false` | Ollama vision OCR provider (needs `OLLAMA_VISION_MODEL`) |
 | `FEATURE_OCR_GOOGLE_VISION` | `false` | Google Vision OCR (blocked when privacy local-only) |
 | `PRIVACY_LOCAL_ONLY` | `true` | Bootstrap privacy; Settings UI can override at runtime |

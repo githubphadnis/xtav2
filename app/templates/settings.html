@@ -2,7 +2,7 @@
 {% block title %}Settings · xtav2{% endblock %}
 {% block content %}
 <h1 class="page-title">Settings</h1>
-<p class="page-lead">Privacy and OCR routing.</p>
+<p class="page-lead">Privacy, mass rename, and OCR routing.</p>
 
 <form method="post" action="/settings/privacy">
   <label class="toggle">
@@ -48,8 +48,13 @@
   </dl>
 </div>
 
-{% if settings.feature_bank_import %}
+{% if settings.feature_mass_rename %}
 <p style="margin-top:1.5rem">
+  <a class="btn btn-primary" href="/rename">Mass rename</a>
+</p>
+{% endif %}
+{% if settings.feature_bank_import %}
+<p style="margin-top:1rem">
   <a class="btn btn-primary" href="/bank">Import bank CSV</a>
 </p>
 {% endif %}

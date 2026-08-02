@@ -111,6 +111,62 @@ def list_expenses(limit: int = 20, q: str | None = None) -> list[dict[str, Any]]
 
 
 @mcp.tool()
+def mass_rename(
+    find: str,
+    replace: str,
+    dry_run: bool = True,
+) -> dict[str, Any]:
+    """Find/replace text in merchant, note, and line-item descriptions.
+
+    dry_run=True (default) previews match counts without changing data.
+    dry_run=False applies the rename (irreversible).
+    """
+    _ensure_ready()
+    if not require_flag("FEATURE_MASS_RENAME", settings):
+        raise RuntimeError("FEATURE_MASS_RENAME is disabled")
+    from app.services import mass_rename as mass_rename_service
+    from app.services.mass_rename import MassRenameError
+
+    with get_session_factory()() as db:
+        try:
+            if dry_run:
+                preview = mass_rename_service.preview_rename(
+                    db,
+                    find=find,
+                    include_line_items=settings.feature_line_items,
+                )
+                return {
+                    "dry_run": True,
+                    "match_count": preview.match_count,
+                    "field_hit_count": preview.field_hit_count,
+                    "samples": [
+                        {
+                            "id": s.id,
+                            "spent_on": s.spent_on.isoformat(),
+                            "merchant": s.merchant,
+                            "note": s.note,
+                            "line_hits": s.line_hits,
+                        }
+                        for s in preview.samples
+                    ],
+                }
+            result = mass_rename_service.apply_rename(
+                db,
+                find=find,
+                replace=replace,
+                confirm=True,
+                include_line_items=settings.feature_line_items,
+            )
+            return {
+                "dry_run": False,
+                "expenses_touched": result.expenses_touched,
+                "fields_changed": result.fields_changed,
+            }
+        except MassRenameError as exc:
+            raise ValueError(str(exc)) from exc
+
+
+@mcp.tool()
 def query_spend(
     q: str | None = None,
     start: str | None = None,

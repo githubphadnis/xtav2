@@ -11,6 +11,7 @@ agents) can use the **same domain services** as the web UI.
 | `delete_expense` | Delete an expense by id |
 | `list_expenses` | List / filter recent expenses |
 | `query_spend` | Aggregate spend for a natural or structured query window |
+| `mass_rename` | Find/replace merchant, note, line-item text (`dry_run` default true; `FEATURE_MASS_RENAME`) |
 | `list_feature_flags` | Show which modules are enabled |
 
 ## Run (dev)

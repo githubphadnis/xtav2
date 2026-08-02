@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Mass rename · xtav2{% endblock %}
+{% block content %}
+<h1 class="page-title">Mass rename</h1>
+<p class="page-lead">
+  Find and replace text in merchant, note{% if settings.feature_line_items %}, and line items{% endif %}.
+  Cannot be undone — preview first.
+</p>
+
+<form method="post" action="/rename/preview">
+  <label class="field">
+    <span>Find</span>
+    <input required name="find" value="{{ find or '' }}" placeholder="Lucky Strike" autocomplete="off" />
+  </label>
+  <label class="field">
+    <span>Replace with</span>
+    <input name="replace" value="{{ replace or '' }}" placeholder="Lucky" autocomplete="off" />
+  </label>
+  <button type="submit" class="btn btn-primary" style="margin-top:1rem">Preview</button>
+</form>
+
+{% if preview %}
+<div class="meta-block" style="margin-top:1.5rem">
+  <p>
+    <strong>{{ preview.match_count }}</strong> expense{{ "s" if preview.match_count != 1 else "" }}
+    · <strong>{{ preview.field_hit_count }}</strong> field hit{{ "s" if preview.field_hit_count != 1 else "" }}
+  </p>
+  {% if preview.samples %}
+  <ul style="margin:0.75rem 0 0; padding-left:1.1rem">
+    {% for s in preview.samples %}
+    <li style="margin-bottom:0.5rem">
+      #{{ s.id }} · {{ s.spent_on }} · {{ s.merchant or "—" }}
+      {% if s.note %}<br /><span style="opacity:0.8">note: {{ s.note }}</span>{% endif %}
+      {% if s.line_hits %}
+      <br /><span style="opacity:0.8">lines: {{ s.line_hits | join(", ") }}</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% if preview.match_count > preview.samples|length %}
+  <p class="page-lead">Showing {{ preview.samples|length }} of {{ preview.match_count }}.</p>
+  {% endif %}
+  {% else %}
+  <p class="page-lead">No matches.</p>
+  {% endif %}
+</div>
+
+{% if preview.match_count > 0 %}
+<form method="post" action="/rename/apply" style="margin-top:1.25rem">
+  <input type="hidden" name="find" value="{{ find }}" />
+  <input type="hidden" name="replace" value="{{ replace }}" />
+  <label class="toggle">
+    <input type="checkbox" name="confirm" value="1" required />
+    <span>
+      <strong>I understand this cannot be undone</strong>
+      <p>Apply replace on all {{ preview.match_count }} matching expenses.</p>
+    </span>
+  </label>
+  <button type="submit" class="btn btn-primary" style="margin-top:1rem">Apply rename</button>
+</form>
+{% endif %}
+{% endif %}
+
+<p style="margin-top:1.5rem"><a href="/settings">← Settings</a></p>
+{% endblock %}

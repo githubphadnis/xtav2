@@ -1,5 +1,14 @@
 ﻿# Breadcrumbs — xtav2
 
+## Session end: 2026-08-02 (mass rename #28)
+
+- Opened [#28](https://github.com/githubphadnis/xtav2/issues/28) (V1.0); roadmap/manifest/flags updated.
+- Implemented find/replace: `app/services/mass_rename.py`, `/rename` UI, Settings link,
+  MCP `mass_rename` (`dry_run` default). Fields: merchant, note, line items.
+- Tests: `tests/test_mass_rename.py` (8); full suite **52 passed**.
+- **Not committed** (await human). Next: review → commit → deploy → phone smoke Settings → Mass rename.
+- Env: `FEATURE_MASS_RENAME=true` (default); Portainer should set explicitly after deploy.
+
 ## Session end: 2026-08-01 (restart)
 
 - Added `docs/ask.md` (honest: Ask often shit; ledger-first; verify via Expenses).

@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     feature_mcp: bool = True
     feature_receipt_ocr: bool = False
     feature_mass_upload: bool = False
+    feature_mass_rename: bool = True
     feature_ocr_ollama_vision: bool = False
     feature_ocr_google_vision: bool = False
     feature_bank_import: bool = False
@@ -68,6 +69,7 @@ class Settings(BaseSettings):
         "feature_mcp",
         "feature_receipt_ocr",
         "feature_mass_upload",
+        "feature_mass_rename",
         "feature_ocr_ollama_vision",
         "feature_ocr_google_vision",
         "feature_bank_import",

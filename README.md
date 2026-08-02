@@ -39,6 +39,7 @@ See `docs/feature-flags.md`, `docs/mcp.md`, `docs/deploy-portainer.md`.
 | Module | Flag | Entry |
 |--------|------|--------|
 | Expenses / Add | `FEATURE_MANUAL_ENTRY` | `/`, `/add` |
+| Mass rename | `FEATURE_MASS_RENAME` | `/rename` (via Settings) |
 | Capture / Pending | `FEATURE_RECEIPT_OCR` | `/capture`, `/pending` |
 | Ask | `FEATURE_OLLAMA_QA` | `/ask` |
 | Insights | `FEATURE_TRENDS_UI` | `/insights` |

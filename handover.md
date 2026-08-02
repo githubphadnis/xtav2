@@ -2,7 +2,7 @@
 
 ## Last Worked On Date
 
-2026-08-01 — `docs/ask.md` added; project docs synced; session stop (human restart)
+2026-08-02 — Mass rename (#28) implemented; docs + tests green
 
 ## Live
 
@@ -19,7 +19,15 @@
 - Insights in use (July skewed after wipe — expected to normalize)
 - Ask: ledger-first; do **not** trust LLM phrasing without Expenses filter check
 
-### Shipped recently
+### This session (local, uncommitted unless asked)
+
+| Area | Notes |
+|------|--------|
+| Mass rename #28 | `FEATURE_MASS_RENAME` (default true); Settings → `/rename`; MCP `mass_rename` |
+| Service | `app/services/mass_rename.py` — preview then apply; fingerprint refresh |
+| Tests | `tests/test_mass_rename.py` — 8 cases; full suite 52 green |
+
+### Shipped recently (prior)
 
 | Area | Notes |
 |------|--------|
@@ -37,6 +45,7 @@ FEATURE_BANK_IMPORT=true
 FEATURE_RECEIPT_OCR=true
 FEATURE_LINE_ITEMS=true
 FEATURE_OCR_GOOGLE_VISION=true
+FEATURE_MASS_RENAME=true
 PRIVACY_LOCAL_ONLY=false
 GOOGLE_VISION_API_KEY=<secret>
 ```
@@ -48,10 +57,11 @@ GOOGLE_VISION_API_KEY=<secret>
 3. Capture = receipt **images** only (not statements)
 4. #9 mass upload, #14 security, #15 lenai, #23 cloud Ask — open
 5. No SSH from agent to notcoolio — LAN `:4280` / Portainer console for ops
+6. Mass rename has **no undo** — operator must preview carefully
 
 ## Next Immediate Steps
 
-1. After restart: confirm Portainer image ≥ `166ed2d`; read `docs/ask.md`.
+1. Review/commit mass rename (#28); deploy image; smoke Settings → Mass rename on phone.
 2. Spot-check Ask vs Expenses filter for Google / 2025 if not done.
 3. Later: bulk Pending [#26] / bulk delete [#25]; Ask quality / #23.
 
@@ -63,6 +73,7 @@ GOOGLE_VISION_API_KEY=<secret>
 | `docs/receipts.md` | OCR + reimport |
 | `docs/bank-reconcile.md` | Bank CSV + non-spend transfers |
 | `docs/insights.md` | Insights phases |
+| `docs/feature-flags.md` | Includes `FEATURE_MASS_RENAME` |
 | `handover.md` | This file |
 | `BREADCRUMBS.md` | Session trail |
 | `ROADMAP.md` | Issues / phases |
