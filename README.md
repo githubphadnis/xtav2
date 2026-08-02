@@ -41,8 +41,8 @@ See `docs/feature-flags.md`, `docs/mcp.md`, `docs/deploy-portainer.md`.
 | Expenses / Add | `FEATURE_MANUAL_ENTRY` | `/`, `/add` |
 | Mass rename | `FEATURE_MASS_RENAME` | `/rename` (via Settings) |
 | Capture / Pending | `FEATURE_RECEIPT_OCR` | `/capture`, `/pending` |
-| Ask | `FEATURE_OLLAMA_QA` | `/ask` |
-| Insights | `FEATURE_TRENDS_UI` | `/insights` |
+| Ask | `FEATURE_OLLAMA_QA` | `/ask` (ledger-first; see `docs/ask.md`) |
+| Insights | `FEATURE_TRENDS_UI` | `/insights` (see `docs/insights.md`) |
 | Bank CSV | `FEATURE_BANK_IMPORT` | `/bank` (via Settings) |
 | MCP | `FEATURE_MCP` | stdio / SSE process |
 

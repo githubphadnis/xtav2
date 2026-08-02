@@ -1,11 +1,16 @@
 ﻿# Breadcrumbs — xtav2
 
+## Session: 2026-08-02 (CI fix + docs sync)
+
+- CI red on `a791ac8`: ruff F841 unused `entity_label` in `expenses.py` — removed.
+- Synced `handover.md` to Ask clarify + Insights #29 windows + Rule 17.
+
 ## Session: 2026-08-02 (Ask clarify + Insights windows)
 
 - Ask: word-boundary for line match (`tom` ≠ tomato); ≥2 distinct labels → choose-one
   buttons on `/ask`. Tests for Tom vs RISPENTOMATE + Tom Hardy vs Tom Ford.
 - Insights #29: shops = last **3** months; line items = last **6** months.
-- 56 tests green. Push for Portainer next.
+- Pushed `a791ac8` (lint failed in CI — see above).
 
 ## Session: 2026-08-02 (Insights #29 + Ask TOM Q)
 

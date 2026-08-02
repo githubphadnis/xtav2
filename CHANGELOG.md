@@ -10,6 +10,7 @@ versioning: [Semantic Versioning](https://semver.org/).
 - Nav and Insights buttons: **Ledger** → **Expenses**; brand sub “expense tracker”.
 
 ### Fixed
+- CI: remove unused `entity_label` (ruff F841) that failed Docker Publish / CI on `a791ac8`.
 - Ask: ambiguous short tokens (`on Tom`) no longer blend tomatoes into the total —
   whole-word match first; if multiple distinct labels remain, Ask offers choose-one
   buttons instead of summing.

@@ -20,12 +20,24 @@ Question
    │
    ├─1─ parse_ask_query  → merchant / category / tokens / period / intent
    ├─2─ query_spend      → Postgres aggregate (duplicates + family/savings excluded)
-   ├─3─ try_deterministic_answer  → if clear, return (no LLM)
+   │                      + line_matches (word-boundary preferred over substring)
+   ├─3─ try_deterministic_answer
+   │      ├─ clear total / line total → canned sentence
+   │      ├─ ≥2 distinct line labels → clarify message + choose-one buttons
+   │      └─ average intent → honest refuse
    └─4─ else Ollama tool loop / fallback  → may still mangle phrasing
 ```
 
 The button says “Ask Ollama”, but **ledger filters run first**. Ollama mostly
 rephrases tool/aggregate JSON. Bad parse → bad aggregate → bad answer (LLM or not).
+
+### Line items & short tokens
+
+When the entity after `on`/`at` is not a known store header match, Ask searches
+**receipt line descriptions**. Matching prefers **whole words** (`\btom\b`) so
+`Tom Hardy` hits and `RISPENTOMATE` / `FLASCHENTOM` do not. If several distinct
+descriptions still match (e.g. Tom Hardy vs Tom Ford), Ask does **not** sum them:
+it shows choose-one buttons that re-POST a more specific question.
 
 ## What works reasonably
 
@@ -35,6 +47,8 @@ rephrases tool/aggregate JSON. Bad parse → bad aggregate → bad answer (LLM o
 | Merchant with `at` / `on` | `How much at REWE this month?` |
 | Category alias | `How many times did I go to the shops?` |
 | Product synonym | `How much on Schokolade?` / kebab ↔ Döner |
+| Renamed line SKU | `How much on Tom Hardy?` (line total, not full basket) |
+| Ambiguous short token | `on Tom` → clarify buttons if multiple whole-word labels |
 | Top-N items | `top 5 most expensive items this month` |
 
 Periods understood: `this month`, `last month`, `this year` / `ytd`, `this week`,

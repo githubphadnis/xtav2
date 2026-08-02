@@ -2,40 +2,30 @@
 
 ## Last Worked On Date
 
-2026-08-02 — Mass rename (#28) implemented; docs + tests green
+2026-08-02 — Ask word-boundary + clarify; Insights #29 windows; CI lint fix
 
 ## Live
 
 - **URL:** https://xta.pphadnis.com/
 - **Repo:** https://github.com/githubphadnis/xtav2 · branch `main`
-- **Image:** `ghcr.io/githubphadnis/xtav2:main` (pull through `166ed2d`+)
+- **Image:** `ghcr.io/githubphadnis/xtav2:main` (target ≥ `a791ac8` + lint fix commit)
 
 ## Current State / WIP
 
-### Prod (as of end of 2026-07-30 session)
+### Prod
 
-- #24 wipe+reimport done; Pending cleared by user
-- Bank CSV re-imported; family/savings transfers tagged (#27)
-- Insights in use (July skewed after wipe — expected to normalize)
-- Ask: ledger-first; do **not** trust LLM phrasing without Expenses filter check
+- Mass rename (#28) in use
+- Ask line-SKU fallback shipped (`3a9c616`); word-boundary + clarify in flight (`a791ac8`, CI was red on unused var)
 
-### This session (local, uncommitted unless asked)
+### Shipped this session
 
 | Area | Notes |
 |------|--------|
-| Mass rename #28 | `FEATURE_MASS_RENAME` (default true); Settings → `/rename`; MCP `mass_rename` |
-| Service | `app/services/mass_rename.py` — preview then apply; fingerprint refresh |
-| Tests | `tests/test_mass_rename.py` — 8 cases; full suite 52 green |
-
-### Shipped recently (prior)
-
-| Area | Notes |
-|------|--------|
-| Expenses rename | Nav / page / Insights |
-| #24 reimport | CLI + `POST /ops/reimport` |
-| #27 non-spend | `family` / `savings` excluded from Ask + Insights |
-| Ask fixes | `on Google` merchant; year `in 2025`; refuse average; product vs merchant |
-| Bulk UX | Tracked only — [#25](https://github.com/githubphadnis/xtav2/issues/25) delete, [#26](https://github.com/githubphadnis/xtav2/issues/26) approve |
+| Mass rename #28 | Settings → `/rename`; MCP `mass_rename` |
+| Ask # line SKU | `on Kevin` / `on Tom Hardy` → line totals when merchant header misses |
+| Ask clarify | Whole-word match; ≥2 labels → choose-one buttons (`docs/ask.md`) |
+| Insights #29 | Top 5 shops **last 3 months**; Top 10 items **last 6 months** |
+| cOcO Rule 17 | Ledger-first Ask; RAG not default (`agent_rules.md`) |
 
 ### Portainer flags
 
@@ -57,23 +47,21 @@ GOOGLE_VISION_API_KEY=<secret>
 3. Capture = receipt **images** only (not statements)
 4. #9 mass upload, #14 security, #15 lenai, #23 cloud Ask — open
 5. No SSH from agent to notcoolio — LAN `:4280` / Portainer console for ops
-6. Mass rename has **no undo** — operator must preview carefully
+6. Mass rename has **no undo**
 
 ## Next Immediate Steps
 
-1. Review/commit mass rename (#28); deploy image; smoke Settings → Mass rename on phone.
-2. Spot-check Ask vs Expenses filter for Google / 2025 if not done.
-3. Later: bulk Pending [#26] / bulk delete [#25]; Ask quality / #23.
+1. Confirm CI/Docker green after lint fix; Portainer pull; smoke Ask `on Tom` + Insights windows.
+2. Later: bulk Pending [#26] / bulk delete [#25]; Ask quality / #23.
 
 ## Key doc index
 
 | Doc | Purpose |
 |-----|---------|
-| `docs/ask.md` | Ask: ledger-first, known failures, how to verify |
-| `docs/receipts.md` | OCR + reimport |
-| `docs/bank-reconcile.md` | Bank CSV + non-spend transfers |
-| `docs/insights.md` | Insights phases |
+| `docs/ask.md` | Ask pipeline, failure classes, clarify / word-boundary |
+| `docs/insights.md` | Pulse + top shops (3mo) + top items (6mo) |
 | `docs/feature-flags.md` | Includes `FEATURE_MASS_RENAME` |
+| `agent_rules.md` Rule 17 | Ledger Q&A integrity |
 | `handover.md` | This file |
 | `BREADCRUMBS.md` | Session trail |
 | `ROADMAP.md` | Issues / phases |

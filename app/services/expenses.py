@@ -570,7 +570,7 @@ def try_deterministic_answer(aggregate: dict[str, object]) -> str | None:
                 )
                 or ""
             ).strip()
-        options = _line_disambiguation_options(line_matches, entity=entity or "that")
+        options = _line_disambiguation_options(line_matches)
         if len(options) >= 2:
             aggregate["clarify_options"] = options
             labels = ", ".join(f"“{o['label']}”" for o in options[:4])
@@ -754,8 +754,6 @@ def _refine_text_matches(
 
 def _line_disambiguation_options(
     line_matches: list[dict[str, object]],
-    *,
-    entity: str,
 ) -> list[dict[str, object]]:
     """When multiple distinct descriptions match, offer pick-one options."""
     groups: dict[str, dict[str, object]] = {}
@@ -779,7 +777,6 @@ def _line_disambiguation_options(
         key=lambda g: (Decimal(str(g["total"])), int(g["count"])),
         reverse=True,
     )[:6]
-    entity_label = (entity or "that").strip() or "that"
     out: list[dict[str, object]] = []
     for group in ranked:
         label = str(group["label"])
