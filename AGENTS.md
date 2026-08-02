@@ -61,3 +61,5 @@ docker compose up --build
 `project-manifest.md`, `README.md`, `dev-docs.md`, `handover.md`, `BREADCRUMBS.md`,
 `ROADMAP.md`, `CHANGELOG.md`, `docs/ask.md`, `docs/insights.md`, `docs/receipts.md`,
 `docs/bank-reconcile.md`, `docs/feature-flags.md`, `docs/deploy-portainer.md`.
+
+Ask / Insights agents: also obey **Rule 17** in `agent_rules.md` (ledger-first Q&A).

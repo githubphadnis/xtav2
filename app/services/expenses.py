@@ -204,6 +204,46 @@ def period_bounds_for_query(q: str, *, today: date | None = None) -> tuple[date 
     return None, None
 
 
+def _entity_after_preposition(ql: str) -> str | None:
+    """Extract merchant/product entity after at/on/to/from (may be multi-word)."""
+    match = re.search(
+        r"\b(?:at|to|from|on)\s+(?:the\s+)?(.+)$",
+        ql,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+    rest = re.split(r"[?!.]", match.group(1), maxsplit=1)[0].strip()
+    words = re.findall(r"[a-z0-9][\w&.\-äöüß]*", rest, flags=re.IGNORECASE)
+    trail_stop = _STOPWORDS | {
+        "during",
+        "between",
+        "since",
+        "until",
+        "before",
+        "after",
+        "today",
+        "yesterday",
+        "next",
+    }
+    taken: list[str] = []
+    for word in words:
+        lower = word.lower()
+        if re.fullmatch(r"20\d{2}", lower):
+            break
+        if lower in trail_stop:
+            break
+        taken.append(word)
+        if len(taken) >= 4:
+            break
+    if not taken:
+        return None
+    entity = " ".join(taken).strip()
+    if not entity or entity.lower() in _STOPWORDS:
+        return None
+    return entity
+
+
 def parse_ask_query(q: str) -> dict[str, object]:
     """Parse NL question into intent + structured filter (merchant/category/tokens)."""
     raw = (q or "").strip()
@@ -260,18 +300,13 @@ def parse_ask_query(q: str) -> dict[str, object]:
                 "wants_items": False,
             }
 
-    merchant_match = re.search(
-        r"\b(?:at|to|from|on)\s+(?:the\s+)?([a-z0-9][\w&.\-äöüß]{1,50})",
-        ql,
-        re.IGNORECASE,
-    )
-    if merchant_match:
-        entity = merchant_match.group(1).strip()
+    entity = _entity_after_preposition(ql)
+    if entity:
         el = entity.lower()
         if el not in _STOPWORDS and el not in _CATEGORY_ALIASES:
             # "on Schokolade/kebab" is a product Ask, not a merchant name.
-            if _is_product_term(entity):
-                product_tokens = expand_product_tokens([entity])
+            if _is_product_term(entity.split()[0] if entity else entity):
+                product_tokens = expand_product_tokens([entity.split()[0]])
                 return {
                     "intent": intent,
                     "filter_type": "tokens",
@@ -507,14 +542,20 @@ def try_deterministic_answer(aggregate: dict[str, object]) -> str | None:
     filter_type_early = (
         str(parsed_early.get("filter_type") or "") if isinstance(parsed_early, dict) else ""
     )
-    # Product line hits only when we are not asking for a merchant/category total.
+    # Prefer line totals when: product Ask, or merchant/name Ask that matched
+    # no expense headers (renamed SKU on a receipt — e.g. "on Kevin" at EDEKA).
     prefer_lines = (
         isinstance(line_matches, list)
         and line_count > 0
-        and filter_type_early not in {"merchant", "category"}
+        and filter_type_early != "category"
         and (
             int(aggregate.get("count") or 0) == 0
-            or _tokens_look_like_product(parsed_early if isinstance(parsed_early, dict) else {})
+            or (
+                filter_type_early not in {"merchant", "category"}
+                and _tokens_look_like_product(
+                    parsed_early if isinstance(parsed_early, dict) else {}
+                )
+            )
         )
     )
     if prefer_lines:
@@ -672,23 +713,34 @@ def query_line_matches(
     start: date | None = None,
     end: date | None = None,
 ) -> list[dict[str, object]]:
-    """Return posted line items matching product tokens (for Ask grounding).
+    """Return posted line items matching product tokens or merchant-entity text.
 
-    Skips merchant/category questions — those are answered from expense headers.
+    Category Asks stay header-only. Merchant Asks also search line descriptions so
+    renamed SKUs (not store names) still resolve when header merchant misses.
     """
     if not (q or "").strip():
         return []
     parsed = parse_ask_query(q or "")
     filter_type = str(parsed.get("filter_type") or "none")
-    if filter_type in {"merchant", "category"}:
+    if filter_type == "category":
         return []
-    tokens_raw = parsed.get("tokens")
-    tokens = [str(t) for t in tokens_raw] if isinstance(tokens_raw, list) else []
+
+    tokens: list[str] = []
+    if filter_type == "merchant":
+        value = str(parsed.get("filter_value") or "").strip()
+        if value:
+            tokens = [value]
+    else:
+        tokens_raw = parsed.get("tokens")
+        tokens = [str(t) for t in tokens_raw] if isinstance(tokens_raw, list) else []
+        if not tokens:
+            return []
+        # Only search line items for product-style queries (synonyms) or lone tokens
+        # that are not already treated as merchants above.
+        if not _tokens_look_like_product(parsed) and len(tokens) > 1:
+            return []
+
     if not tokens:
-        return []
-    # Only search line items for product-style queries (synonyms) or lone tokens
-    # that are not already treated as merchants above.
-    if not _tokens_look_like_product(parsed) and len(tokens) > 1:
         return []
     stmt = (
         select(ExpenseLineItem, Expense)

@@ -304,6 +304,67 @@ def test_what_was_not_merchant_was() -> None:
         assert "SCHWAMM" not in ans
 
 
+def test_ask_line_item_after_mass_rename_not_merchant() -> None:
+    """Renamed SKU on an EDEKA receipt must answer via line items — not 0 as merchant.
+
+    Exact user path: Lucky Strike Red → Kevin (line), Ask 'How much … on Kevin'.
+    Also: multi-word 'Tom Hardy' must not truncate to 'tom'.
+    """
+    os.environ["FEATURE_LINE_ITEMS"] = "true"
+    get_settings.cache_clear()
+    settings = get_settings()
+    SessionLocal = get_session_factory()
+    with SessionLocal() as db:
+        row = expense_service.add_expense(
+            db,
+            settings=settings,
+            spent_on=date(2026, 7, 31),
+            amount=Decimal("45.00"),
+            currency="EUR",
+            merchant="EDEKA",
+            category="groceries",
+            note="ocr:google_vision+ollama_structure",
+        )
+        expense_service.replace_line_items(
+            db,
+            expense_id=row.id,
+            items=[
+                {"description": "Kevin", "amount": "8.50"},
+                {"description": "Milch", "amount": "1.29"},
+            ],
+            currency="EUR",
+        )
+        phrase = "How much did I spend on Kevin"
+        ans = expense_service.try_deterministic_answer(
+            expense_service.query_spend(db, settings=settings, q=phrase)
+        )
+        assert ans is not None
+        assert "8.50" in ans
+        assert "45.00" not in ans  # full basket must not substitute for the SKU
+
+        expense_service.replace_line_items(
+            db,
+            expense_id=row.id,
+            items=[
+                {"description": "Tom Hardy", "amount": "8.50"},
+                {"description": "Milch", "amount": "1.29"},
+            ],
+            currency="EUR",
+        )
+        parsed = expense_service.parse_ask_query("How much did I spend on Tom Hardy")
+        assert "hardy" in str(parsed.get("filter_value") or "").lower() or any(
+            "hardy" in str(t).lower()
+            for t in (parsed.get("tokens") or [])
+        )
+        ans2 = expense_service.try_deterministic_answer(
+            expense_service.query_spend(
+                db, settings=settings, q="How much did I spend on Tom Hardy"
+            )
+        )
+        assert ans2 is not None
+        assert "8.50" in ans2
+
+
 def test_delete_expense() -> None:
     settings = get_settings()
     SessionLocal = get_session_factory()

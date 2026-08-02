@@ -10,6 +10,9 @@ versioning: [Semantic Versioning](https://semver.org/).
 - Nav and Insights buttons: **Ledger** → **Expenses**; brand sub “expense tracker”.
 
 ### Fixed
+- Ask: “on Kevin” / “on Tom Hardy” after mass-renaming a **line item** no longer
+  returns 0.00 as a missing merchant — falls back to matching line totals; multi-word
+  entities after `on`/`at` kept intact (Rule 17 / ledger-first).
 - Ask: “on Google” → merchant filter; calendar year `in 2025`; refuse average/month
   honestly; product synonyms after “on” (Schokolade) stay line-item Ask; stop
   Wh**at was** / `%am%` / `%per%` false matches.

@@ -159,3 +159,38 @@ when a project gains users or collaborators. See `AGENTS.md` for tier definition
       `BREADCRUMBS.md` for the session.
     - Goal: each repeated failure makes the system stricter once, so the next agent
       (and future you) cannot silently repeat it.
+
+17. **Ledger Q&A Integrity — "Numbers from the ledger, not the embedding"** *[Core]*
+    Product goals for spend trackers (and similar money systems): (1) capture all
+    spending across sources/currencies, (2) surface patterns and sinkholes from real
+    aggregates, (3) answer **standard** natural-language questions with **pinpoint**
+    accuracy. Architecture must serve those goals — not fashion.
+
+    - **Source of truth is the relational store** (Postgres for xtav2). Amounts, dates,
+      merchants, categories, and FX live in tables. UI filters, Insights, MCP, and Ask
+      must agree on the same exclusion rules (e.g. non-spend transfers).
+    - **Standard Ask path (mandatory):** parse entities/period/intent → deterministic
+      aggregate / ranked query on the ledger → answer. Prefer skipping the LLM when the
+      intent is clear (`try_deterministic_answer` pattern). The LLM may **phrase** tool
+      JSON; it must not invent totals.
+    - **DoD for a “standard scenario”:** for the exact user phrase, Ask’s number matches
+      Expenses list / Insights / `query_spend` for the same merchant/category/window.
+      Write the failing phrase test first (Rule 15). If no safe aggregate exists, **refuse**
+      honestly — do not hallucinate averages or visit counts.
+    - **Router, not RAG-first:** exact numerical / top-N / “how much / how often” → SQL
+      tools. Open prose over notes/OCR dumps may later use retrieval — only behind a
+      `FEATURE_*` flag, on-box embeddings, and **never** as a substitute for money
+      totals. Do not introduce Chroma/FAISS/HNSW/cross-encoders unless a tracked issue
+      scopes unstructured search and the SQL path already passes DoD for standard phrases.
+    - **Patterns / sinkholes:** prefer deterministic Insights (MoM, category, merchant
+      ranks) and flagged savings modules over LLM storytelling. Charts must match
+      `query_spend` for the same filter (see project Insights docs).
+    - **UX honesty:** when an answer is ledger-derived vs LLM-rephrased, make that
+      visible when practical so operators verify via Expenses filters.
+    - **Privacy:** any future embedding index stays local; `PRIVACY_LOCAL_ONLY` (or
+      equivalent) must block cloud embed/LLM paths. Never log raw find/replace or
+      sensitive merchant strings into application logs when the product treats them as
+      sensitive.
+    - **Context window / model:** Ollama timeouts, model names, and context size come
+      from env/config verified on the host inventory (Rule 15) — never assume a RAG stack
+      fixes a wrong or missing model.

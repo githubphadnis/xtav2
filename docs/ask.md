@@ -66,9 +66,17 @@ Non-spend bank categories (`family`, `savings`) are **excluded** from totals
 - `Wh**at was**` → `\b` before `at|on|…`
 - `on Google` vs `on Schokolade` → merchant vs product synonym
 - Invented averages → refuse until a real aggregate exists
+- Renamed line SKU asked as merchant (`on Kevin` / `on Tom Hardy` at EDEKA) → was
+  0.00; now line-item fallback when header count is 0; multi-word after `on`/`at`
 
-## Future
+## Future (priority order — do not skip ahead)
 
-- Stronger deterministic intents (monthly average, MoM, budget)
-- Optional cloud LLM (#23) with privacy gate
-- UI: show “from ledger” vs “Ollama phrasing” so users know what ran
+1. **Standard-scenario accuracy** — more deterministic intents (monthly average, MoM,
+   budget); exact-phrase tests; UI badge “from ledger” vs “Ollama phrasing”.
+2. **Better tool-calling on lenai** — model/context via inventory (#15); optional cloud
+   voice (#23) with privacy gate — still ledger tools first.
+3. **Patterns / sinkholes** — Insights depth + flagged savings; charts must match
+   `query_spend`.
+4. **Optional unstructured retrieval (RAG)** — only if notes/OCR narrative search is a
+   tracked, flagged module. **Never** replace SQL totals with vector similarity.
+   See `agent_rules.md` Rule 17.

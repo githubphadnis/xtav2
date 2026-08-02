@@ -1,13 +1,30 @@
 ﻿# Breadcrumbs — xtav2
 
+## Session: 2026-08-02 (Ask line-SKU miss — not RAG)
+
+- User: Mass rename finds Kevin on EDEKA lines; Ask “on Kevin” / “Tom Hardy” → 0.00.
+- Root cause: `on X` parsed as **merchant** (header only); line items ignored; multi-word
+  truncated to first token. **Not a RAG gap** — data was in Postgres.
+- Fix: multi-word entity parse; merchant Ask also searches line descriptions; prefer
+  line totals when header count is 0. Test: `test_ask_line_item_after_mass_rename_not_merchant`.
+- Next: deploy when asked; smoke Ask “How much did I spend on Tom Hardy”.
+
+## Session: 2026-08-02 (Ask integrity / cOcO Rule 17)
+
+- Promoted Ask architecture into **Rule 17** (`agent_rules.md`): numbers from ledger,
+  not embeddings; RAG only as optional flagged unstructured search.
+- Added `.cursor/rules/ask-integrity.mdc`; updated `docs/ask.md` Future priority order.
+- Rewrote mega RAG system-prompt into lean product-aligned prompt (see chat).
+- Next Ask work: deterministic intents + “from ledger” UI — **not** Chroma/FAISS.
+
 ## Session end: 2026-08-02 (mass rename #28)
 
 - Opened [#28](https://github.com/githubphadnis/xtav2/issues/28) (V1.0); roadmap/manifest/flags updated.
 - Implemented find/replace: `app/services/mass_rename.py`, `/rename` UI, Settings link,
   MCP `mass_rename` (`dry_run` default). Fields: merchant, note, line items.
 - Tests: `tests/test_mass_rename.py` (8); full suite **52 passed**.
-- **Not committed** (await human). Next: review → commit → deploy → phone smoke Settings → Mass rename.
-- Env: `FEATURE_MASS_RENAME=true` (default); Portainer should set explicitly after deploy.
+- Pushed `3e71123`; Portainer deploy — Mass rename confirmed working by human.
+- Env: `FEATURE_MASS_RENAME=true` (default).
 
 ## Session end: 2026-08-01 (restart)
 

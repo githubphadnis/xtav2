@@ -4,6 +4,7 @@
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-08-02 | Rule 17: ledger Q&A integrity — SQL-first Ask; RAG only flagged unstructured | Ask failures were parse/aggregate, not missing vectors; avoid token waste |
 | 2026-08-02 | Mass rename find/replace (#28); no undo; never log find/replace strings | Privacy-adjacent ledger hygiene; sensitive terms |
 | 2026-07-30 | Ask ledger-first; merchant `\b`; year YYYY; refuse average | Exact user phrases; verify via Expenses filter |
 | 2026-07-30 | Non-spend `family`/`savings` excluded from Ask/Insights | #27; bank auto-tag |

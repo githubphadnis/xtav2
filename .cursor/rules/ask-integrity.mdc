@@ -1,0 +1,28 @@
+---
+description: Ask / Insights integrity — ledger-first Q&A (cOcO Rule 17)
+globs: app/services/ask*.py,app/services/expenses.py,app/services/insights.py,docs/ask.md,mcp_server/**
+alwaysApply: false
+---
+
+# Ask & Insights integrity
+
+Follow `AGENTS.md` → `agent_rules.md` **Rule 17** and `docs/ask.md`.
+
+## Product goals (in order of how you build)
+
+1. **Capture** — all spend, multi-currency, multi-source; Postgres is truth.
+2. **Patterns** — Insights / aggregates from the ledger (not LLM anecdotes).
+3. **Pinpoint Ask** — standard phrases must match Expenses / `query_spend`.
+
+## Do
+
+- Parse → SQL/aggregate → deterministic answer when possible; LLM only to phrase tool JSON.
+- Exact-phrase failing tests before parse changes.
+- Refuse when no safe aggregate exists.
+- Gate any vector/RAG work behind `FEATURE_*` + tracked issue; never for money totals.
+
+## Do not
+
+- Embed the ledger to “fix Ask.”
+- Whole-sentence ILIKE on the raw question.
+- Invent averages, visit counts, or totals the tools did not return.
