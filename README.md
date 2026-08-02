@@ -47,7 +47,7 @@ See `docs/feature-flags.md`, `docs/mcp.md`, `docs/deploy-portainer.md`.
 | MCP | `FEATURE_MCP` | stdio / SSE process |
 
 Design notes: `docs/insights.md`, `docs/receipts.md`, `docs/bank-reconcile.md`,
-`docs/ask.md` (Ask quality is weak — verify via Expenses).  
+`docs/ask.md` (**Ask still unreliable** — verify via Expenses).  
 **Agent handoff:** start at `handover.md` + `BREADCRUMBS.md`.
 
 ## Deployment Steps

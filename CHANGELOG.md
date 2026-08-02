@@ -7,6 +7,8 @@ versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
+- Docs: Ask status remains **unreliable in prod** (2026-08-02 operator verdict);
+  Insights #29 accepted. See `docs/ask.md`, `handover.md`.
 - Nav and Insights buttons: **Ledger** → **Expenses**; brand sub “expense tracker”.
 
 ### Fixed

@@ -1,9 +1,17 @@
 ﻿# Breadcrumbs — xtav2
 
+## Session end: 2026-08-02 (STOP)
+
+- Operator: **Insights OK**; **Ask still shite** despite line-SKU / word-boundary / clarify.
+- Docs honesty pass: `docs/ask.md`, `handover.md`, `ROADMAP.md` Ask section, breadcrumbs.
+- Live image target: `main` ≥ `6983437`. Next session: Ask quality from exact prod phrases
+  (Rule 17) — not RAG-first.
+- **Stop here.**
+
 ## Session: 2026-08-02 (CI fix + docs sync)
 
-- CI red on `a791ac8`: ruff F841 unused `entity_label` in `expenses.py` — removed.
-- Synced `handover.md` to Ask clarify + Insights #29 windows + Rule 17.
+- CI red on `a791ac8`: ruff F841 unused `entity_label` — fixed in `6983437` (CI + Docker green).
+- Synced handover / ask / insights docs.
 
 ## Session: 2026-08-02 (Ask clarify + Insights windows)
 

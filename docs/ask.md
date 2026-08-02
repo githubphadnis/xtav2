@@ -1,17 +1,23 @@
 # Ask — natural-language spend Q&A
 
-**Status:** usable for **simple** questions; quality is often poor for complex NL.  
+**Status (2026-08-02):** **Still unreliable in prod.** Operator verdict after recent
+patches: Insights OK; **Ask still shite**. Use Expenses filters (and Insights) as
+truth. Treat Ask as experimental helper only.
+
 **Flag:** `FEATURE_OLLAMA_QA` → `/ask`  
 **Code:** `app/services/expenses.py` (parse + aggregates), `app/services/ask_agent.py` (Ollama tools)  
-**Related:** [#23](https://github.com/githubphadnis/xtav2/issues/23) optional cloud LLM / better voice
+**Related:** [#23](https://github.com/githubphadnis/xtav2/issues/23) optional cloud LLM / better voice;
+`agent_rules.md` **Rule 17** (ledger-first; no RAG for money totals)
 
 ## Honest quality note
 
-Ask responses have been **wrong or nonsense** in prod (e.g. invented Google totals,
-random line items for “average spend”). Treat Ask as a **helper**, not truth.
+Ask often returns **wrong, incomplete, or nonsense** answers even for simple-looking
+phrases. Recent fixes (line-item fallback, word-boundary, clarify buttons) address
+**specific** failure classes only — they did **not** make Ask trustworthy overall.
 
-**Source of truth:** Expenses list filters (and Insights for MoM). Always verify
-suspicious Ask numbers by opening Expenses with the same merchant/date window.
+**Source of truth:** Expenses list filters (and Insights for MoM / shops / items).
+Always verify suspicious Ask numbers by opening Expenses with the same
+merchant/date/product window.
 
 ## How it actually works
 
@@ -39,7 +45,7 @@ When the entity after `on`/`at` is not a known store header match, Ask searches
 descriptions still match (e.g. Tom Hardy vs Tom Ford), Ask does **not** sum them:
 it shows choose-one buttons that re-POST a more specific question.
 
-## What works reasonably
+## What works reasonably (when lucky)
 
 | Phrase shape | Example |
 |--------------|---------|
@@ -47,7 +53,7 @@ it shows choose-one buttons that re-POST a more specific question.
 | Merchant with `at` / `on` | `How much at REWE this month?` |
 | Category alias | `How many times did I go to the shops?` |
 | Product synonym | `How much on Schokolade?` / kebab ↔ Döner |
-| Renamed line SKU | `How much on Tom Hardy?` (line total, not full basket) |
+| Renamed line SKU (exact) | `How much on Tom Hardy?` (line total, not full basket) |
 | Ambiguous short token | `on Tom` → clarify buttons if multiple whole-word labels |
 | Top-N items | `top 5 most expensive items this month` |
 
@@ -62,9 +68,11 @@ Non-spend bank categories (`family`, `savings`) are **excluded** from totals
 | Ask | What happens |
 |-----|----------------|
 | Average per month / week | Deterministic refuse — not implemented |
+| Typos / odd phrasing | Parse often wrong |
 | Vague / multi-part questions | Often junk tokens or Ollama hallucination |
 | Bank PDF / Capture for statements | Wrong UI — use Settings → `/bank` CSV |
-| Trusting “116 visits / 2764 EUR” style claims | **Verify in Expenses** |
+| Trusting any Ask total without checking | **Verify in Expenses** |
+| Expecting LLM “smart” disambiguation for everything | Only narrow clarify path exists; rest still brittle |
 
 ## How to verify any Ask answer
 
@@ -87,12 +95,12 @@ Non-spend bank categories (`family`, `savings`) are **excluded** from totals
 
 ## Future (priority order — do not skip ahead)
 
-1. **Standard-scenario accuracy** — more deterministic intents (monthly average, MoM,
-   budget); exact-phrase tests; UI badge “from ledger” vs “Ollama phrasing”.
+1. **Standard-scenario accuracy** — more deterministic intents; exact-phrase tests from
+   prod failures; UI badge “from ledger” vs “Ollama phrasing”. **Next Ask milestone.**
 2. **Better tool-calling on lenai** — model/context via inventory (#15); optional cloud
    voice (#23) with privacy gate — still ledger tools first.
 3. **Patterns / sinkholes** — Insights depth + flagged savings; charts must match
-   `query_spend`.
+   `query_spend` (Insights already preferred over Ask for habits).
 4. **Optional unstructured retrieval (RAG)** — only if notes/OCR narrative search is a
    tracked, flagged module. **Never** replace SQL totals with vector similarity.
    See `agent_rules.md` Rule 17.
