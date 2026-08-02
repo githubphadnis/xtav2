@@ -25,8 +25,12 @@
    prior months = full calendar months. Peak labels = `format_money` + currency.
    Tap column → expenses list filtered to that window.
 4. **MTD vs same-days-last-month** detail cards.
-5. **Category + merchant** horizontal bars (no rank numbers).
-6. Aggregates use `amount_base` when multi-currency; exclude active duplicates **and**
+5. **Category + merchant** horizontal bars (amount at end of bar).
+6. **Top 5 shops visited** (by visit count, **last 3 months**) — amount at end of
+   horizontal bar ([#29](https://github.com/githubphadnis/xtav2/issues/29)).
+7. **Top 10 bought line items** (by frequency, **last 6 months**) — average cost at
+   end of bar ([#29](https://github.com/githubphadnis/xtav2/issues/29)).
+8. Aggregates use `amount_base` when multi-currency; exclude active duplicates **and**
    non-spend categories (`family` / `savings` — see `docs/bank-reconcile.md`).
 
 ### Chart implementation note (2026-07-27)

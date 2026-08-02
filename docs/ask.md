@@ -68,6 +68,8 @@ Non-spend bank categories (`family`, `savings`) are **excluded** from totals
 - Invented averages → refuse until a real aggregate exists
 - Renamed line SKU asked as merchant (`on Kevin` / `on Tom Hardy` at EDEKA) → was
   0.00; now line-item fallback when header count is 0; multi-word after `on`/`at`
+- Substring `tom` matching tomatoes (`RISPENTOMATE`) → prefer **word-boundary**
+  matches; if ≥2 distinct labels remain → Ask clarify buttons (not one blended total)
 
 ## Future (priority order — do not skip ahead)
 

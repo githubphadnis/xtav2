@@ -558,6 +558,26 @@ def try_deterministic_answer(aggregate: dict[str, object]) -> str | None:
             )
         )
     )
+    if prefer_lines and isinstance(line_matches, list):
+        entity = ""
+        if isinstance(parsed_early, dict):
+            entity = str(
+                parsed_early.get("filter_value")
+                or (
+                    " ".join(str(t) for t in parsed_early.get("tokens") or [])
+                    if isinstance(parsed_early.get("tokens"), list)
+                    else ""
+                )
+                or ""
+            ).strip()
+        options = _line_disambiguation_options(line_matches, entity=entity or "that")
+        if len(options) >= 2:
+            aggregate["clarify_options"] = options
+            labels = ", ".join(f"“{o['label']}”" for o in options[:4])
+            return (
+                f"I found multiple matches for “{entity or 'that'}” "
+                f"({labels}). Choose one below — I need something more specific."
+            )
     if prefer_lines:
         samples = []
         for m in line_matches[:5]:
@@ -706,6 +726,75 @@ def list_line_items(db: Session, *, expense_id: int) -> list[ExpenseLineItem]:
     )
 
 
+def _word_boundary_match(haystack: str, needle: str) -> bool:
+    """True when needle appears as a whole word/phrase (case-insensitive)."""
+    text = (haystack or "").strip()
+    token = (needle or "").strip()
+    if not text or not token:
+        return False
+    return bool(re.search(rf"(?i)\b{re.escape(token)}\b", text))
+
+
+def _refine_text_matches(
+    rows: list[dict[str, object]],
+    *,
+    tokens: list[str],
+    field: str = "description",
+) -> list[dict[str, object]]:
+    """Prefer word-boundary hits; fall back to substring rows only if none."""
+    if not rows or not tokens:
+        return rows
+    strict = [
+        row
+        for row in rows
+        if any(_word_boundary_match(str(row.get(field) or ""), t) for t in tokens)
+    ]
+    return strict if strict else rows
+
+
+def _line_disambiguation_options(
+    line_matches: list[dict[str, object]],
+    *,
+    entity: str,
+) -> list[dict[str, object]]:
+    """When multiple distinct descriptions match, offer pick-one options."""
+    groups: dict[str, dict[str, object]] = {}
+    for match in line_matches:
+        label = str(match.get("description") or "").strip()
+        key = label.casefold()
+        if not key:
+            continue
+        group = groups.get(key)
+        if group is None:
+            group = {"label": label, "total": Decimal("0.00"), "count": 0}
+            groups[key] = group
+        group["total"] = (
+            Decimal(str(group["total"])) + Decimal(str(match.get("amount") or 0))
+        ).quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
+        group["count"] = int(group["count"]) + 1
+    if len(groups) < 2:
+        return []
+    ranked = sorted(
+        groups.values(),
+        key=lambda g: (Decimal(str(g["total"])), int(g["count"])),
+        reverse=True,
+    )[:6]
+    entity_label = (entity or "that").strip() or "that"
+    out: list[dict[str, object]] = []
+    for group in ranked:
+        label = str(group["label"])
+        out.append(
+            {
+                "label": label,
+                "count": int(group["count"]),
+                "total": float(Decimal(str(group["total"]))),
+                "q": f"How much on {label}",
+                "button": label,
+            }
+        )
+    return out
+
+
 def query_line_matches(
     db: Session,
     *,
@@ -717,6 +806,7 @@ def query_line_matches(
 
     Category Asks stay header-only. Merchant Asks also search line descriptions so
     renamed SKUs (not store names) still resolve when header merchant misses.
+    Prefers whole-word matches so ``tom`` does not match ``RISPENTOMATE``.
     """
     if not (q or "").strip():
         return []
@@ -770,7 +860,7 @@ def query_line_matches(
                 "currency": item.currency,
             }
         )
-    return out
+    return _refine_text_matches(out, tokens=tokens, field="description")
 
 
 def add_expense(

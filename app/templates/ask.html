@@ -19,4 +19,21 @@
 {% if answer %}
 <div class="answer">{{ answer }}</div>
 {% endif %}
+
+{% if clarify_options %}
+<div class="clarify" aria-label="Choose a match">
+  <p class="page-lead" style="margin-top:0.75rem">Choose one of these:</p>
+  <div class="clarify-actions">
+    {% for opt in clarify_options %}
+    <form method="post" action="/ask" class="clarify-form">
+      <input type="hidden" name="question" value="{{ opt.q }}" />
+      <button type="submit" class="btn btn-ghost">
+        {{ opt.button or opt.label }}
+        <span class="clarify-meta">{{ format_money(opt.total) if format_money is defined else opt.total }} · {{ opt.count }}×</span>
+      </button>
+    </form>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 {% endblock %}

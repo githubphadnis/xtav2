@@ -119,6 +119,74 @@ def test_pulse_matches_query_spend() -> None:
         assert pulse.trend_months[-1].total == Decimal("60.00")
         assert pulse.trend_months[1].total == Decimal("130.00")  # full June
 
+        assert pulse.top_shops[0].key == "REWE"
+        assert pulse.top_shops[0].count == 2
+        assert pulse.top_shops[0].total == Decimal("70.00")
+
+
+def test_top_shops_and_line_items() -> None:
+    """Top shops by visits; top line items by frequency with average (#29)."""
+    os.environ["FEATURE_LINE_ITEMS"] = "true"
+    get_settings.cache_clear()
+    settings = get_settings()
+    SessionLocal = get_session_factory()
+    today = date(2026, 7, 27)
+    with SessionLocal() as db:
+        for day in (10, 11, 12):
+            expense_service.add_expense(
+                db,
+                settings=settings,
+                spent_on=date(2026, 7, day),
+                amount=Decimal("10.00"),
+                currency="EUR",
+                merchant="REWE",
+                category="groceries",
+            )
+        edeka = expense_service.add_expense(
+            db,
+            settings=settings,
+            spent_on=date(2026, 7, 15),
+            amount=Decimal("20.00"),
+            currency="EUR",
+            merchant="EDEKA",
+            category="groceries",
+        )
+        expense_service.replace_line_items(
+            db,
+            expense_id=edeka.id,
+            items=[
+                {"description": "Milch", "amount": "1.20"},
+                {"description": "Brot", "amount": "2.50"},
+            ],
+            currency="EUR",
+        )
+        rewe2 = expense_service.add_expense(
+            db,
+            settings=settings,
+            spent_on=date(2026, 7, 16),
+            amount=Decimal("5.00"),
+            currency="EUR",
+            merchant="REWE",
+            category="groceries",
+        )
+        expense_service.replace_line_items(
+            db,
+            expense_id=rewe2.id,
+            items=[{"description": "Milch", "amount": "1.40"}],
+            currency="EUR",
+        )
+
+        pulse = build_pulse(db, settings=settings, today=today)
+        assert pulse.top_shops[0].key == "REWE"
+        assert pulse.top_shops[0].count == 4
+        assert len(pulse.top_shops) <= 5
+        assert pulse.top_shops_start == date(2026, 5, 1)
+        assert pulse.top_line_items_start == date(2026, 2, 1)
+
+        milch = next(r for r in pulse.top_line_items if r.key == "Milch")
+        assert milch.count == 2
+        assert milch.average == Decimal("1.30")
+
 
 def test_period_total_excludes_active_duplicates() -> None:
     settings = get_settings()

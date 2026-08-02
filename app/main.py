@@ -475,6 +475,8 @@ def insights_page(
     pulse = build_pulse(db, settings=settings)
     cat_ceiling = max((c.total for c in pulse.categories), default=Decimal(0))
     merch_ceiling = max((m.total for m in pulse.merchants), default=Decimal(0))
+    shop_ceiling = max((s.count for s in pulse.top_shops), default=0) or 1
+    line_ceiling = max((li.count for li in pulse.top_line_items), default=0) or 1
     trend_ceiling = max((m.total for m in pulse.trend_months), default=Decimal("0.01"))
     return templates.TemplateResponse(
         request,
@@ -491,6 +493,8 @@ def insights_page(
             bar_height_rem=bar_height_rem,
             cat_ceiling=cat_ceiling,
             merch_ceiling=merch_ceiling,
+            shop_ceiling=shop_ceiling,
+            line_ceiling=line_ceiling,
             trend_ceiling=trend_ceiling,
         ),
     )
@@ -840,8 +844,10 @@ async def ask(
         raise HTTPException(status_code=404, detail="Ollama Q&A disabled")
 
     from app.services.ask_agent import answer_question
+    from app.services.expenses import format_money
 
     answer, aggregate = await answer_question(db, settings, question=question)
+    clarify_options = aggregate.get("clarify_options") if isinstance(aggregate, dict) else None
 
     return templates.TemplateResponse(
         request,
@@ -854,5 +860,7 @@ async def ask(
             question=question,
             answer=answer,
             aggregate=aggregate,
+            clarify_options=clarify_options,
+            format_money=format_money,
         ),
     )

@@ -67,7 +67,7 @@
             <span class="bar-fill" style="width: {{ bar_share(row.total, cat_ceiling) }}%"></span>
           </span>
         </span>
-        <span class="bar-amt">{{ format_money(row.total) }}</span>
+        <span class="bar-amt">{{ format_money(row.total) }} {{ pulse.currency }}</span>
       </a>
       <div class="insight-actions insight-actions-tight">
         <a class="btn btn-ghost btn-inline" href="/?category={{ row.key|urlencode }}&amp;start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">Expenses</a>
@@ -83,8 +83,59 @@
   {% endif %}
 </section>
 
-<section class="insight-block" aria-label="Merchants">
-  <h2 class="insight-h">Top merchants</h2>
+<section class="insight-block" aria-label="Top shops visited">
+  <h2 class="insight-h">Top 5 shops visited · last 3 months</h2>
+  {% if pulse.top_shops %}
+  <ul class="bar-list">
+    {% for row in pulse.top_shops %}
+    <li class="bar-card">
+      <a class="bar-row" href="/?merchant={{ row.key|urlencode }}&amp;start={{ pulse.top_shops_start }}&amp;end={{ pulse.this_month.end }}">
+        <span class="bar-main">
+          <span class="bar-label">{{ row.key }} · {{ row.count }} visit{{ "s" if row.count != 1 else "" }}</span>
+          <span class="bar-track" aria-hidden="true">
+            <span class="bar-fill bar-fill-alt" style="width: {{ (row.count / shop_ceiling * 100)|round(1) }}%"></span>
+          </span>
+        </span>
+        <span class="bar-amt">{{ format_money(row.total) }} {{ pulse.currency }}</span>
+      </a>
+      <div class="insight-actions insight-actions-tight">
+        <a class="btn btn-ghost btn-inline" href="/?merchant={{ row.key|urlencode }}&amp;start={{ pulse.top_shops_start }}&amp;end={{ pulse.this_month.end }}">Expenses</a>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">No shops in the last 3 months.</p>
+  {% endif %}
+</section>
+
+{% if settings.feature_line_items %}
+<section class="insight-block" aria-label="Top line items">
+  <h2 class="insight-h">Top 10 bought items · last 6 months</h2>
+  {% if pulse.top_line_items %}
+  <ul class="bar-list">
+    {% for row in pulse.top_line_items %}
+    <li class="bar-card">
+      <div class="bar-row">
+        <span class="bar-main">
+          <span class="bar-label">{{ row.key }} · {{ row.count }}×</span>
+          <span class="bar-track" aria-hidden="true">
+            <span class="bar-fill" style="width: {{ (row.count / line_ceiling * 100)|round(1) }}%"></span>
+          </span>
+        </span>
+        <span class="bar-amt">avg {{ format_money(row.average) }} {{ pulse.currency }}</span>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">No line items in the last 6 months.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="insight-block" aria-label="Merchants by spend">
+  <h2 class="insight-h">Top merchants by spend</h2>
   {% if pulse.merchants %}
   <ul class="bar-list">
     {% for row in pulse.merchants %}
@@ -96,7 +147,7 @@
             <span class="bar-fill bar-fill-alt" style="width: {{ bar_share(row.total, merch_ceiling) }}%"></span>
           </span>
         </span>
-        <span class="bar-amt">{{ format_money(row.total) }}</span>
+        <span class="bar-amt">{{ format_money(row.total) }} {{ pulse.currency }}</span>
       </a>
       <div class="insight-actions insight-actions-tight">
         <a class="btn btn-ghost btn-inline" href="/?merchant={{ row.key|urlencode }}&amp;start={{ pulse.this_month.start }}&amp;end={{ pulse.this_month.end }}">Expenses</a>

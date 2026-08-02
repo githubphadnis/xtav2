@@ -365,6 +365,80 @@ def test_ask_line_item_after_mass_rename_not_merchant() -> None:
         assert "8.50" in ans2
 
 
+def test_ask_tom_not_tomato_substring() -> None:
+    """'on Tom' must not sum RISPENTOMATE / FLASCHENTOM via %tom%."""
+    os.environ["FEATURE_LINE_ITEMS"] = "true"
+    get_settings.cache_clear()
+    settings = get_settings()
+    SessionLocal = get_session_factory()
+    with SessionLocal() as db:
+        row = expense_service.add_expense(
+            db,
+            settings=settings,
+            spent_on=date(2026, 7, 31),
+            amount=Decimal("30.00"),
+            currency="EUR",
+            merchant="EDEKA",
+        )
+        expense_service.replace_line_items(
+            db,
+            expense_id=row.id,
+            items=[
+                {"description": "Tom Hardy", "amount": "9.40"},
+                {"description": "FLASCHENTOM.", "amount": "5.49"},
+                {"description": "RISPENTOMATE", "amount": "1.01"},
+            ],
+            currency="EUR",
+        )
+        agg = expense_service.query_spend(
+            db, settings=settings, q="What did I spend on Tom?"
+        )
+        descs = [str(m["description"]) for m in agg["line_matches"]]
+        assert descs == ["Tom Hardy"]
+        assert float(agg["line_total"]) == 9.40
+        ans = expense_service.try_deterministic_answer(agg)
+        assert ans is not None
+        assert "9.40" in ans
+        assert "RISPENTOMATE" not in ans
+
+
+def test_ask_ambiguous_tom_offers_choices() -> None:
+    """Two whole-word Tom* lines → clarify instead of summing."""
+    os.environ["FEATURE_LINE_ITEMS"] = "true"
+    get_settings.cache_clear()
+    settings = get_settings()
+    SessionLocal = get_session_factory()
+    with SessionLocal() as db:
+        row = expense_service.add_expense(
+            db,
+            settings=settings,
+            spent_on=date(2026, 7, 31),
+            amount=Decimal("40.00"),
+            currency="EUR",
+            merchant="EDEKA",
+        )
+        expense_service.replace_line_items(
+            db,
+            expense_id=row.id,
+            items=[
+                {"description": "Tom Hardy", "amount": "9.40"},
+                {"description": "Tom Ford Cologne", "amount": "30.00"},
+            ],
+            currency="EUR",
+        )
+        agg = expense_service.query_spend(
+            db, settings=settings, q="How much on Tom"
+        )
+        ans = expense_service.try_deterministic_answer(agg)
+        assert ans is not None
+        assert "multiple matches" in ans.lower()
+        opts = agg.get("clarify_options")
+        assert isinstance(opts, list) and len(opts) >= 2
+        labels = {str(o["label"]) for o in opts}
+        assert "Tom Hardy" in labels
+        assert "Tom Ford Cologne" in labels
+
+
 def test_delete_expense() -> None:
     settings = get_settings()
     SessionLocal = get_session_factory()

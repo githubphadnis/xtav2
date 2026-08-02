@@ -10,6 +10,9 @@ versioning: [Semantic Versioning](https://semver.org/).
 - Nav and Insights buttons: **Ledger** → **Expenses**; brand sub “expense tracker”.
 
 ### Fixed
+- Ask: ambiguous short tokens (`on Tom`) no longer blend tomatoes into the total —
+  whole-word match first; if multiple distinct labels remain, Ask offers choose-one
+  buttons instead of summing.
 - Ask: “on Kevin” / “on Tom Hardy” after mass-renaming a **line item** no longer
   returns 0.00 as a missing merchant — falls back to matching line totals; multi-word
   entities after `on`/`at` kept intact (Rule 17 / ledger-first).
@@ -23,6 +26,8 @@ versioning: [Semantic Versioning](https://semver.org/).
   date wins over LLM; unknown dates get `date:unparsed` + Pending warning ([#24](https://github.com/githubphadnis/xtav2/issues/24)).
 
 ### Added
+- Insights: **Top 5 shops visited (last 3 months)** + **Top 10 bought items
+  (last 6 months)** with amounts/avg on bars ([#29](https://github.com/githubphadnis/xtav2/issues/29)).
 - **Mass rename** ([#28](https://github.com/githubphadnis/xtav2/issues/28), `FEATURE_MASS_RENAME`):
   Settings → `/rename` find/replace on merchant, note, and line items; MCP
   `mass_rename` (dry_run preview / apply). Irreversible; preview required in UI.

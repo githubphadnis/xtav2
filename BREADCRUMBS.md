@@ -1,5 +1,19 @@
 ﻿# Breadcrumbs — xtav2
 
+## Session: 2026-08-02 (Ask clarify + Insights windows)
+
+- Ask: word-boundary for line match (`tom` ≠ tomato); ≥2 distinct labels → choose-one
+  buttons on `/ask`. Tests for Tom vs RISPENTOMATE + Tom Hardy vs Tom Ford.
+- Insights #29: shops = last **3** months; line items = last **6** months.
+- 56 tests green. Push for Portainer next.
+
+## Session: 2026-08-02 (Insights #29 + Ask TOM Q)
+
+- Insights: top 5 shops by visits + top 10 line items w/ avg (#29).
+- Ask Q: `How much on TOM` → ILIKE `%tom%` matches `Tom Hardy` (and Tomato risk) —
+  addressed by word-boundary + clarify above.
+- Prior: Ask line-SKU fix pushed `3a9c616`.
+
 ## Session: 2026-08-02 (Ask line-SKU miss — not RAG)
 
 - User: Mass rename finds Kevin on EDEKA lines; Ask “on Kevin” / “Tom Hardy” → 0.00.
@@ -7,7 +21,7 @@
   truncated to first token. **Not a RAG gap** — data was in Postgres.
 - Fix: multi-word entity parse; merchant Ask also searches line descriptions; prefer
   line totals when header count is 0. Test: `test_ask_line_item_after_mass_rename_not_merchant`.
-- Next: deploy when asked; smoke Ask “How much did I spend on Tom Hardy”.
+- Pushed `3a9c616`.
 
 ## Session: 2026-08-02 (Ask integrity / cOcO Rule 17)
 

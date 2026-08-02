@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.models import Expense
+from app.models import Expense, ExpenseLineItem
 from app.services.expenses import _exclude_active_duplicates, _exclude_non_spend, format_money
 
 _MONEY_QUANT = Decimal("0.01")
@@ -42,6 +42,17 @@ class BreakdownRow:
 
 
 @dataclass(frozen=True)
+class LineItemInsightRow:
+    """One frequently bought line-item description."""
+
+    key: str
+    count: int
+    total: Decimal
+    average: Decimal
+    currency: str
+
+
+@dataclass(frozen=True)
 class InsightsPulse:
     """Phase 1 Insights payload for the UI."""
 
@@ -53,6 +64,10 @@ class InsightsPulse:
     delta_pct_label: str
     categories: list[BreakdownRow]
     merchants: list[BreakdownRow]
+    top_shops: list[BreakdownRow]
+    top_shops_start: date
+    top_line_items: list[LineItemInsightRow]
+    top_line_items_start: date
     trend_months: list[PeriodTotal]
 
 
@@ -209,6 +224,106 @@ def _breakdown(
     return out
 
 
+def _shops_by_visits(
+    db: Session,
+    *,
+    settings: Settings,
+    start: date,
+    end: date,
+    limit: int = 5,
+) -> list[BreakdownRow]:
+    """Top shops by visit count (expense rows), with spend totals for bar labels."""
+    amount_col = _amount_col(settings)
+    label_expr = func.nullif(func.trim(Expense.merchant), "")
+    stmt = (
+        select(
+            label_expr,
+            func.coalesce(func.sum(amount_col), 0),
+            func.count(Expense.id),
+        )
+        .where(
+            Expense.status == "posted",
+            _exclude_active_duplicates(),
+            _exclude_non_spend(),
+            Expense.spent_on >= start,
+            Expense.spent_on <= end,
+        )
+        .group_by(label_expr)
+        .order_by(func.count(Expense.id).desc(), func.sum(amount_col).desc())
+        .limit(limit)
+    )
+    rows = list(db.execute(stmt).all())
+    currency = _currency_label(settings)
+    visit_ceiling = max((int(c or 0) for _, _, c in rows), default=0)
+    out: list[BreakdownRow] = []
+    for key, total_raw, count in rows:
+        total = Decimal(str(total_raw or 0)).quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
+        visits = int(count or 0)
+        pct = float((visits / visit_ceiling * 100) if visit_ceiling > 0 else 0)
+        out.append(
+            BreakdownRow(
+                key=(key or "unknown merchant"),
+                total=total,
+                count=visits,
+                pct=round(pct, 1),
+                currency=currency,
+            )
+        )
+    return out
+
+
+def _top_line_items(
+    db: Session,
+    *,
+    settings: Settings,
+    start: date,
+    end: date,
+    limit: int = 10,
+) -> list[LineItemInsightRow]:
+    """Top bought line descriptions by frequency; average line amount."""
+    label_expr = func.nullif(func.trim(ExpenseLineItem.description), "")
+    # Line amounts are stored in original currency; prefer amount_base on parent
+    # when multi-currency by scaling is not available per line — use line amount
+    # and report base currency label only when all lines share base (V1: EUR lines).
+    amount_expr = ExpenseLineItem.amount
+    stmt = (
+        select(
+            label_expr,
+            func.count(ExpenseLineItem.id),
+            func.coalesce(func.sum(amount_expr), 0),
+            func.coalesce(func.avg(amount_expr), 0),
+        )
+        .join(Expense, Expense.id == ExpenseLineItem.expense_id)
+        .where(
+            Expense.status == "posted",
+            _exclude_active_duplicates(),
+            _exclude_non_spend(),
+            Expense.spent_on >= start,
+            Expense.spent_on <= end,
+            label_expr.is_not(None),
+        )
+        .group_by(label_expr)
+        .order_by(func.count(ExpenseLineItem.id).desc(), func.sum(amount_expr).desc())
+        .limit(limit)
+    )
+    rows = list(db.execute(stmt).all())
+    currency = _currency_label(settings)
+    out: list[LineItemInsightRow] = []
+    for key, count, total_raw, avg_raw in rows:
+        total = Decimal(str(total_raw or 0)).quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
+        average = Decimal(str(avg_raw or 0)).quantize(_MONEY_QUANT, rounding=ROUND_HALF_UP)
+        out.append(
+            LineItemInsightRow(
+                key=str(key),
+                count=int(count or 0),
+                total=total,
+                average=average,
+                currency=currency,
+            )
+        )
+    return out
+
+
 def build_pulse(db: Session, *, settings: Settings, today: date | None = None) -> InsightsPulse:
     """Build Phase 1 Insights aggregates for the Insights screen."""
     day = today or today_in_tz(settings.app_timezone)
@@ -257,6 +372,24 @@ def build_pulse(db: Session, *, settings: Settings, today: date | None = None) -
         group_col=Expense.merchant,
         empty_label="unknown merchant",
     )
+    shops_start = rolling_month_windows(day, months=3)[0][0]
+    lines_start = rolling_month_windows(day, months=6)[0][0]
+    top_shops = _shops_by_visits(
+        db,
+        settings=settings,
+        start=shops_start,
+        end=this_end,
+        limit=5,
+    )
+    top_line_items: list[LineItemInsightRow] = []
+    if settings.feature_line_items:
+        top_line_items = _top_line_items(
+            db,
+            settings=settings,
+            start=lines_start,
+            end=this_end,
+            limit=10,
+        )
     trend_months: list[PeriodTotal] = []
     for start, end, short_label in rolling_month_windows(day, months=3):
         trend_months.append(
@@ -273,6 +406,10 @@ def build_pulse(db: Session, *, settings: Settings, today: date | None = None) -
         delta_pct_label=delta_pct_label,
         categories=categories,
         merchants=merchants,
+        top_shops=top_shops,
+        top_shops_start=shops_start,
+        top_line_items=top_line_items,
+        top_line_items_start=lines_start,
         trend_months=trend_months,
     )
 

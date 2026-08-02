@@ -260,6 +260,30 @@ input:focus {
   font-size: 0.95rem;
 }
 
+.clarify-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.clarify-form {
+  margin: 0;
+}
+
+.clarify-form .btn {
+  width: 100%;
+  justify-content: space-between;
+  text-align: left;
+}
+
+.clarify-meta {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  margin-left: 0.5rem;
+}
+
 .toggle {
   display: flex;
   align-items: flex-start;
